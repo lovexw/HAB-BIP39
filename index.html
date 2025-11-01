@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>哈勃未来 · 比特币助记词生成</title>
+<style>
+body {font-family:"Roboto Mono",monospace; background:#f4f7f9; color:#333; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; min-height:100vh;}
+header {margin:2rem; text-align:center;}
+header h1 {margin:0; color:#2a2a72;}
+header p {margin:0.5rem 0; color:#555;}
+main {width:90%; max-width:600px; background:#fff; padding:2rem; box-shadow:0 0 20px rgba(42,42,114,0.1); border-radius:8px; position:relative;}
+.warning {border:2px solid #d9534f; padding:1rem; background:#fce8e6; color:#a94442; margin-bottom:1.5rem; border-radius:4px;}
+.file-input {margin-bottom:1rem;}
+label {display:inline-block; margin-bottom:0.5rem; color:#444;}
+input[type="file"] {display:block;}
+button {background-color:#2a2a72; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer; font-size:1rem; margin:0.5rem 0; transition:box-shadow 0.2s;}
+button:disabled {background:#888; cursor:not-allowed;}
+button:hover:not(:disabled){box-shadow:0 0 10px rgba(42,42,114,0.5);}
+.options {margin:1rem 0;}
+.mnemonic {margin-top:1.5rem; word-break:break-word; padding:1rem; background:#eef2fa; border:1px solid #c3cbe5; border-radius:4px; font-size:1.1rem;}
+.actions {margin-top:1rem;}
+.actions button {margin-right:0.5rem;}
+footer {margin-top:auto; padding:1rem; font-size:0.9rem; color:#777; text-align:center;}
+a {color:#2a2a72; text-decoration:none;}
+a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<header>
+<h1>哈勃未来 · 比特币助记词生成</h1>
+<p>完全离线 · 强烈建议断网使用 · 开源可信</p>
+</header>
+<main>
+<div class="warning">⚠️ <strong>安全提示</strong>：请在离线环境中使用本页面。默认加载本目录 english.txt 并显示 SHA256 校验值，建议自行验证。上传文件可覆盖默认词表。</div>
+
+<div class="file-input">
+<label for="wordlist">上传 BIP39 英文词表 (english.txt) :</label>
+<input type="file" id="wordlist" accept=".txt">
+<div id="sha256-display">SHA256: —</div>
+</div>
+
+<div class="options">
+<label>助记词长度：</label>
+<button id="btn-12" disabled>12 词</button>
+<button id="btn-24">24 词</button>
+</div>
+
+<button id="btn-generate" disabled>生成助记词</button>
+<div class="mnemonic" id="mnemonic"></div>
+
+<div class="actions">
+<button id="btn-copy" disabled>复制助记词</button>
+<button id="btn-clear">清除</button>
+<button id="btn-download">下载源码 (HTML)</button>
+</div>
+</main>
+
+<footer>
+源码开源 · 请自行验证本项目 <br>
+部署 & 安全由你掌控 · 强烈建议保存助记词后断网关闭本页面
+</footer>
+
+<script>
+(async()=>{
+const shaDisplay=document.getElementById("sha256-display");
+const btnGenerate=document.getElementById("btn-generate");
+const mnemonicDiv=document.getElementById("mnemonic");
+const btnCopy=document.getElementById("btn-copy");
+const btnClear=document.getElementById("btn-clear");
+const btnDownload=document.getElementById("btn-download");
+const btn12=document.getElementById("btn-12");
+const btn24=document.getElementById("btn-24");
+let wordCount=12;
+btn12.disabled=true;
+btn12.addEventListener("click",()=>{wordCount=12; btn12.disabled=true; btn24.disabled=false;});
+btn24.addEventListener("click",()=>{wordCount=24; btn12.disabled=false; btn24.disabled=true;});
+
+const WORDLIST=[];
+async function sha256(buf){
+  const hash=await crypto.subtle.digest("SHA-256", buf);
+  const hashArray=new Uint8Array(hash);
+  return Array.from(hashArray).map(b=>b.toString(16).padStart(2,"0")).join(""); // 64字符
+}
+
+function bytesToBits(bytes){const bits=[];for(let b of bytes){for(let i=7;i>=0;i--) bits.push((b>>i)&1);}return bits;}
+function bitsToInt(bits){return bits.reduce((acc,b)=>(acc<<1)|b,0);}
+async function entropyToMnemonic(entropy,wordlist){
+  const ENT=entropy.length*8;
+  const checksumLen=ENT/32;
+  const hash=new Uint8Array(await crypto.subtle.digest("SHA-256", entropy));
+  const bits=bytesToBits(entropy).concat(bytesToBits(hash).slice(0,checksumLen));
+  const chunks=[];
+  for(let i=0;i<bits.length/11;i++){chunks.push(wordlist[bitsToInt(bits.slice(i*11,(i+1)*11))]);}
+  return chunks.join(" ");
+}
+function generateEntropy(bytes){const arr=new Uint8Array(bytes); crypto.getRandomValues(arr); return arr;}
+
+// 自动加载 english.txt
+try{
+  const resp=await fetch("english.txt");
+  if(!resp.ok)throw new Error("无法加载 english.txt");
+  const buf=await resp.arrayBuffer();
+  const text=new TextDecoder().decode(buf);
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
+  if(lines.length!==2048)throw new Error("english.txt 行数不为 2048");
+  WORDLIST.push(...lines);
+  const hashHex=await sha256(buf);
+  shaDisplay.textContent="SHA256: "+hashHex+" (默认加载)";
+  btnGenerate.disabled=false;
+  btn12.disabled=false;
+}catch(e){
+  shaDisplay.textContent="默认 english.txt 加载失败，请手动上传";
+  console.error(e);
+}
+
+document.getElementById("wordlist").addEventListener("change",async e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const buf=await file.arrayBuffer();
+  const text=new TextDecoder().decode(buf);
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
+  if(lines.length!==2048){alert("词表行数不是 2048");return;}
+  WORDLIST.splice(0,WORDLIST.length,...lines);
+  const hashHex=await sha256(buf);
+  shaDisplay.textContent="SHA256: "+hashHex+" (已手动上传)";
+  btnGenerate.disabled=false;
+  btn12.disabled=false;
+});
+
+btnGenerate.addEventListener("click",async()=>{
+  if(WORDLIST.length!==2048){alert("请先加载词表");return;}
+  const entropyBytes=wordCount===12?16:32;
+  const entropy=generateEntropy(entropyBytes);
+  const mnemonic=await entropyToMnemonic(entropy,WORDLIST);
+  mnemonicDiv.textContent=mnemonic;
+  btnCopy.disabled=false;
+});
+
+btnCopy.addEventListener("click",()=>{navigator.clipboard.writeText(mnemonicDiv.textContent).then(()=>alert("助记词已复制，请妥善保存"));});
+btnClear.addEventListener("click",()=>{mnemonicDiv.textContent=""; btnCopy.disabled=true;});
+btnDownload.addEventListener("click",()=>{
+  const html=document.documentElement.outerHTML;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="hubble-mnemonic-generator.html";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+})();
+</script>
+</body>
+</html>
