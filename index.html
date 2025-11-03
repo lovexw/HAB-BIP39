@@ -4,26 +4,359 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>哈勃未来 · 比特币助记词生成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body {font-family:"Roboto Mono",monospace; background:#f4f7f9; color:#333; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; min-height:100vh;}
-header {margin:2rem; text-align:center;}
-header h1 {margin:0; color:#2a2a72;}
-header p {margin:0.5rem 0; color:#555;}
-main {width:90%; max-width:600px; background:#fff; padding:2rem; box-shadow:0 0 20px rgba(42,42,114,0.1); border-radius:8px; position:relative;}
-.warning {border:2px solid #d9534f; padding:1rem; background:#fce8e6; color:#a94442; margin-bottom:1.5rem; border-radius:4px;}
-.file-input {margin-bottom:1rem;}
-label {display:inline-block; margin-bottom:0.5rem; color:#444;}
-input[type="file"] {display:block;}
-button {background-color:#2a2a72; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer; font-size:1rem; margin:0.5rem 0; transition:box-shadow 0.2s;}
-button:disabled {background:#888; cursor:not-allowed;}
-button:hover:not(:disabled){box-shadow:0 0 10px rgba(42,42,114,0.5);}
-.options {margin:1rem 0;}
-.mnemonic {margin-top:1.5rem; word-break:break-word; padding:1rem; background:#eef2fa; border:1px solid #c3cbe5; border-radius:4px; font-size:1.1rem;}
-.actions {margin-top:1rem;}
-.actions button {margin-right:0.5rem;}
-footer {margin-top:auto; padding:1rem; font-size:0.9rem; color:#777; text-align:center;}
-a {color:#2a2a72; text-decoration:none;}
-a:hover{text-decoration:underline;}
+:root {
+  --primary: #1a56db;
+  --primary-dark: #1e429f;
+  --primary-light: #e1effe;
+  --secondary: #4f46e5;
+  --accent: #7e3af2;
+  --warning: #ff5a1f;
+  --warning-light: #fdba8c;
+  --success: #0e9f6e;
+  --dark: #1a1c23;
+  --medium-dark: #4a5568;
+  --medium: #707275;
+  --light: #e5e7eb;
+  --lighter: #f4f5f7;
+  --white: #ffffff;
+  --radius: 0.5rem;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(135deg, #f6f8fc 0%, #e9f1f9 100%);
+  color: var(--dark);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+header {
+  margin: 3rem 1rem;
+  text-align: center;
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+header h1 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: 2.2rem;
+  letter-spacing: -0.5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+header p {
+  margin: 0.75rem 0;
+  color: var(--medium);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+main {
+  width: 92%;
+  max-width: 650px;
+  background: var(--white);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius);
+  position: relative;
+  margin-bottom: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+main:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.warning {
+  background-color: rgba(255, 90, 31, 0.1);
+  border-left: 4px solid var(--warning);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.warning-icon {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.warning-content {
+  flex: 1;
+}
+
+.warning-content strong {
+  display: block;
+  color: var(--warning);
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.warning-text {
+  line-height: 1.5;
+}
+
+.warning:hover {
+  background-color: rgba(255, 90, 31, 0.15);
+  transform: translateX(3px);
+}
+
+.warning strong {
+  display: block;
+  color: var(--warning);
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.file-input {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: var(--lighter);
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.file-input:hover {
+  background: #edf2f7;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--medium-dark);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+input[type="file"] {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--white);
+  border: 1px solid var(--light);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+#sha256-display {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--medium);
+  background: rgba(0,0,0,0.03);
+  border-radius: 0.25rem;
+  word-break: break-all;
+}
+
+.options {
+  margin: 1.5rem 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.options label {
+  margin-bottom: 0;
+  margin-right: 0.5rem;
+}
+
+button {
+  background: linear-gradient(to bottom, var(--primary), var(--primary-dark));
+  color: var(--white);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0.5rem 0;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+button:hover::after {
+  opacity: 1;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  background: var(--medium);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#btn-generate {
+  background: linear-gradient(to bottom, var(--accent), #6c2bd9);
+  padding: 0.85rem 2rem;
+  font-size: 1.05rem;
+  margin: 1rem 0;
+  width: 100%;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 6px -1px rgba(126, 58, 242, 0.3), 0 2px 4px -1px rgba(126, 58, 242, 0.2);
+}
+
+.mnemonic {
+  margin-top: 2rem;
+  word-break: break-word;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  min-height: 5rem;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+#mnemonic span {
+  display: inline-block;
+  padding: 0.15rem 0.3rem;
+  margin: 0.15rem;
+  background-color: var(--primary-light);
+  border-radius: 3px;
+  color: var(--primary-dark);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+#mnemonic span:hover {
+  background-color: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.mnemonic:not(:empty) {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.actions button {
+  flex: 1;
+  min-width: 120px;
+}
+
+#btn-copy {
+  background: linear-gradient(to bottom, var(--success), #057a55);
+}
+
+#btn-clear {
+  background: linear-gradient(to bottom, var(--medium-dark), #2d3748);
+}
+
+footer {
+  margin-top: auto;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--medium);
+  text-align: center;
+  width: 100%;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  header h1 {
+    font-size: 1.8rem;
+  }
+  
+  header p {
+    font-size: 1rem;
+  }
+  
+  main {
+    padding: 1.5rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .actions button {
+    width: 100%;
+  }
+}
 </style>
 </head>
 <body>
@@ -32,7 +365,13 @@ a:hover{text-decoration:underline;}
 <p>完全离线 · 强烈建议断网使用 · 开源可信</p>
 </header>
 <main>
-<div class="warning">⚠️ <strong>安全提示</strong>：请在离线环境中使用本页面。默认加载本目录 english.txt 并显示 SHA256 校验值，建议自行验证。上传文件可覆盖默认词表。</div>
+<div class="warning">
+  <div class="warning-icon">⚠️</div>
+  <div class="warning-content">
+    <strong>安全提示</strong>
+    <div class="warning-text">请在离线环境中使用本页面。默认加载本目录 english.txt 并显示 SHA256 校验值，建议自行验证。上传文件可覆盖默认词表。</div>
+  </div>
+</div>
 
 <div class="file-input">
 <label for="wordlist">上传 BIP39 英文词表 (english.txt) :</label>
@@ -61,6 +400,113 @@ a:hover{text-decoration:underline;}
 部署 & 安全由你掌控 · 强烈建议保存助记词后断网关闭本页面
 </footer>
 
+<style>
+/* 添加动画和交互效果 */
+.ripple {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  right: 10px;
+  margin-top: -10px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {transform: rotate(360deg);}
+}
+
+.mnemonic.generating {
+  position: relative;
+}
+
+.mnemonic.generating::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  top: 50%;
+  left: 50%;
+  margin-top: -15px;
+  margin-left: -15px;
+  border: 3px solid rgba(66, 153, 225, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.mnemonic.cleared {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% {transform: translate3d(-1px, 0, 0);}
+  20%, 80% {transform: translate3d(2px, 0, 0);}
+  30%, 50%, 70% {transform: translate3d(-4px, 0, 0);}
+  40%, 60% {transform: translate3d(4px, 0, 0);}
+}
+
+body.loaded main,
+body.loaded header {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#sha256-display {
+  transition: color 0.3s ease;
+}
+
+.file-input:focus-within {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+input[type="file"]:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* 助记词显示区域增强 */
+.mnemonic:not(:empty) {
+  background: linear-gradient(to right, #f0f9ff, #e6f6ff);
+}
+
+/* 按钮悬停效果增强 */
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+</style>
+
 <script>
 (async()=>{
 const shaDisplay=document.getElementById("sha256-display");
@@ -73,8 +519,59 @@ const btn12=document.getElementById("btn-12");
 const btn24=document.getElementById("btn-24");
 let wordCount=12;
 btn12.disabled=true;
-btn12.addEventListener("click",()=>{wordCount=12; btn12.disabled=true; btn24.disabled=false;});
-btn24.addEventListener("click",()=>{wordCount=24; btn12.disabled=false; btn24.disabled=true;});
+
+// 添加按钮点击波纹效果
+const addRippleEffect = (button) => {
+  button.addEventListener('click', function(e) {
+    if (this.disabled) return;
+    
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    this.appendChild(ripple);
+    
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${e.clientX - rect.left - size/2}px`;
+    ripple.style.top = `${e.clientY - rect.top - size/2}px`;
+    
+    ripple.classList.add('active');
+    
+    setTimeout(() => {
+      ripple.remove();
+    }, 600);
+  });
+};
+
+// 为所有按钮添加波纹效果
+document.querySelectorAll('button').forEach(addRippleEffect);
+
+// 添加加载动画
+function showLoading(element) {
+  element.classList.add('loading');
+  element.setAttribute('data-text', element.textContent);
+  element.textContent = '处理中...';
+}
+
+function hideLoading(element) {
+  if (element.classList.contains('loading')) {
+    element.textContent = element.getAttribute('data-text');
+    element.classList.remove('loading');
+  }
+}
+
+btn12.addEventListener("click",()=>{
+  wordCount=12; 
+  btn12.disabled=true; 
+  btn24.disabled=false;
+});
+
+btn24.addEventListener("click",()=>{
+  wordCount=24; 
+  btn12.disabled=false; 
+  btn24.disabled=true;
+});
 
 const WORDLIST=[];
 async function sha256(buf){
@@ -117,12 +614,24 @@ try{
 document.getElementById("wordlist").addEventListener("change",async e=>{
   const file=e.target.files[0];
   if(!file)return;
+  
+  showLoading(shaDisplay);
+  
   const buf=await file.arrayBuffer();
   const text=new TextDecoder().decode(buf);
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
-  if(lines.length!==2048){alert("词表行数不是 2048");return;}
+  if(lines.length!==2048){
+    hideLoading(shaDisplay);
+    shaDisplay.textContent = "词表行数不是 2048";
+    shaDisplay.style.color = "#e53e3e";
+    setTimeout(() => {
+      shaDisplay.style.color = "";
+    }, 3000);
+    return;
+  }
   WORDLIST.splice(0,WORDLIST.length,...lines);
   const hashHex=await sha256(buf);
+  hideLoading(shaDisplay);
   shaDisplay.textContent="SHA256: "+hashHex+" (已手动上传)";
   btnGenerate.disabled=false;
   btn12.disabled=false;
@@ -130,26 +639,103 @@ document.getElementById("wordlist").addEventListener("change",async e=>{
 
 btnGenerate.addEventListener("click",async()=>{
   if(WORDLIST.length!==2048){alert("请先加载词表");return;}
+  
+  showLoading(btnGenerate);
+  mnemonicDiv.textContent = "";
+  mnemonicDiv.classList.add('generating');
+  
+  // 添加一点延迟以显示动画效果
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
   const entropyBytes=wordCount===12?16:32;
   const entropy=generateEntropy(entropyBytes);
   const mnemonic=await entropyToMnemonic(entropy,WORDLIST);
-  mnemonicDiv.textContent=mnemonic;
+  
+  hideLoading(btnGenerate);
+  mnemonicDiv.classList.remove('generating');
+  
+  // 逐个单词显示动画
+  const words = mnemonic.split(' ');
+  mnemonicDiv.textContent = '';
+  
+  for (let i = 0; i < words.length; i++) {
+    const wordSpan = document.createElement('span');
+    wordSpan.textContent = words[i];
+    wordSpan.style.opacity = '0';
+    wordSpan.style.transform = 'translateY(10px)';
+    wordSpan.style.transition = `all 0.2s ease ${i * 50}ms`;
+    
+    if (i < words.length - 1) {
+      const space = document.createTextNode(' ');
+      mnemonicDiv.appendChild(wordSpan);
+      mnemonicDiv.appendChild(space);
+    } else {
+      mnemonicDiv.appendChild(wordSpan);
+    }
+    
+    // 触发重排以应用动画
+    setTimeout(() => {
+      wordSpan.style.opacity = '1';
+      wordSpan.style.transform = 'translateY(0)';
+    }, 10);
+  }
+  
   btnCopy.disabled=false;
 });
 
-btnCopy.addEventListener("click",()=>{navigator.clipboard.writeText(mnemonicDiv.textContent).then(()=>alert("助记词已复制，请妥善保存"));});
-btnClear.addEventListener("click",()=>{mnemonicDiv.textContent=""; btnCopy.disabled=true;});
+btnCopy.addEventListener("click",()=>{
+  const text=mnemonicDiv.textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const originalText = btnCopy.textContent;
+    btnCopy.textContent = "✓ 已复制";
+    
+    setTimeout(() => {
+      btnCopy.textContent = originalText;
+    }, 2000);
+  });
+});
+
+btnClear.addEventListener("click",()=>{
+  mnemonicDiv.textContent=""; 
+  btnCopy.disabled=true;
+  
+  // 添加清除动画
+  mnemonicDiv.classList.add('cleared');
+  setTimeout(() => {
+    mnemonicDiv.classList.remove('cleared');
+  }, 500);
+});
+
 btnDownload.addEventListener("click",()=>{
-  const html=document.documentElement.outerHTML;
-  const blob=new Blob([html],{type:"text/html"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download="hubble-mnemonic-generator.html";
-  a.click();
-  URL.revokeObjectURL(url);
+  showLoading(btnDownload);
+  
+  setTimeout(() => {
+    const html=document.documentElement.outerHTML;
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="hubble-mnemonic-generator.html";
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    hideLoading(btnDownload);
+    
+    const originalText = btnDownload.textContent;
+    btnDownload.textContent = "✓ 已下载";
+    
+    setTimeout(() => {
+      btnDownload.textContent = originalText;
+    }, 2000);
+  }, 300);
+});
+
+// 添加页面加载完成动画
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('loaded');
 });
 })();
 </script>
 </body>
+</html>
 </html>
