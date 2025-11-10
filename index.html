@@ -411,7 +411,11 @@ a:hover {
 
 <footer>
 源码开源 · 请自行验证本项目 <br>
-部署 & 安全由你掌控 · 强烈建议保存助记词后断网关闭本页面
+部署 & 安全由你掌控 · 强烈建议保存助记词后断网关闭本页面 <br><br>
+<div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.8); border-radius: 0.5rem; font-size: 0.85rem;">
+  <strong>词表完整性验证 (SHA-256):</strong><br>
+  <code id="wordlist-hash" style="word-break: break-all; font-family: monospace; font-size: 0.75rem; color: #555;">计算中...</code>
+</div>
 </footer>
 
 <!-- 词表查看器模态框 -->
@@ -973,6 +977,14 @@ btn24.addEventListener("click",()=>{
   btn24.disabled=true;
 });
 
+// Security function to clear sensitive data from memory
+function secureClearArray(arr) {
+  if (!arr) return;
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = 0;
+  }
+}
+
 // BIP39 helper functions
 function bytesToBits(bytes){const bits=[];for(let b of bytes){for(let i=7;i>=0;i--) bits.push((b>>i)&1);}return bits;}
 function bitsToInt(bits){return bits.reduce((acc,b)=>(acc<<1)|b,0);}
@@ -1015,52 +1027,84 @@ window.addEventListener("click", (event) => {
 });
 
 btnGenerate.addEventListener("click",async()=>{
-  if(WORDLIST.length!==2048){alert("词表异常");return;}
+  let entropy = null;
   
-  showLoading(btnGenerate);
-  mnemonicDiv.textContent = "";
-  mnemonicDiv.classList.add('generating');
-  
-  // 添加一点延迟以显示动画效果
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  const entropyBytes=wordCount===12?16:32;
-  const entropy=generateEntropy(entropyBytes);
-  const mnemonic=await entropyToMnemonic(entropy,WORDLIST);
-  
-  hideLoading(btnGenerate);
-  mnemonicDiv.classList.remove('generating');
-  
-  // 逐个单词显示动画
-  const words = mnemonic.split(' ');
-  mnemonicDiv.textContent = '';
-  
-  for (let i = 0; i < words.length; i++) {
-    const wordSpan = document.createElement('span');
-    wordSpan.textContent = words[i];
-    wordSpan.style.opacity = '0';
-    wordSpan.style.transform = 'translateY(10px)';
-    wordSpan.style.transition = `all 0.2s ease ${i * 50}ms`;
-    
-    if (i < words.length - 1) {
-      const space = document.createTextNode(' ');
-      mnemonicDiv.appendChild(wordSpan);
-      mnemonicDiv.appendChild(space);
-    } else {
-      mnemonicDiv.appendChild(wordSpan);
+  try {
+    // Validate wordlist integrity
+    if(WORDLIST.length!==2048){
+      throw new Error("词表异常，无法安全生成助记词");
     }
     
-    // 触发重排以应用动画
-    setTimeout(() => {
-      wordSpan.style.opacity = '1';
-      wordSpan.style.transform = 'translateY(0)';
-    }, 10);
+    // Check crypto API availability
+    if (!window.crypto || !window.crypto.getRandomValues) {
+      throw new Error("浏览器不支持安全随机数生成");
+    }
+    
+    showLoading(btnGenerate);
+    mnemonicDiv.textContent = "";
+    mnemonicDiv.classList.add('generating');
+    
+    // 添加一点延迟以显示动画效果
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const entropyBytes=wordCount===12?16:32;
+    entropy=generateEntropy(entropyBytes);
+    const mnemonic=await entropyToMnemonic(entropy,WORDLIST);
+    
+    // Clear entropy from memory immediately after use
+    secureClearArray(entropy);
+    entropy = null;
+    
+    hideLoading(btnGenerate);
+    mnemonicDiv.classList.remove('generating');
+    
+    // 逐个单词显示动画
+    const words = mnemonic.split(' ');
+    mnemonicDiv.textContent = '';
+    
+    for (let i = 0; i < words.length; i++) {
+      const wordSpan = document.createElement('span');
+      wordSpan.textContent = words[i];
+      wordSpan.style.opacity = '0';
+      wordSpan.style.transform = 'translateY(10px)';
+      wordSpan.style.transition = `all 0.2s ease ${i * 50}ms`;
+      
+      if (i < words.length - 1) {
+        const space = document.createTextNode(' ');
+        mnemonicDiv.appendChild(wordSpan);
+        mnemonicDiv.appendChild(space);
+      } else {
+        mnemonicDiv.appendChild(wordSpan);
+      }
+      
+      // 触发重排以应用动画
+      setTimeout(() => {
+        wordSpan.style.opacity = '1';
+        wordSpan.style.transform = 'translateY(0)';
+      }, 10);
+    }
+    
+    btnCopy.disabled=false;
+    
+  } catch (error) {
+    console.error("生成助记词时出错:", error);
+    alert("生成失败: " + error.message);
+    hideLoading(btnGenerate);
+    mnemonicDiv.classList.remove('generating');
+    
+    // Clear entropy if it exists
+    if (entropy) {
+      secureClearArray(entropy);
+    }
   }
-  
-  btnCopy.disabled=false;
 });
 
 btnCopy.addEventListener("click",()=>{
+  // Security warning before copying to clipboard
+  if (!confirm("⚠️ 安全警告\n\n复制到剪贴板可能被恶意软件或其他应用监控读取。\n\n建议：手抄助记词而非复制。\n\n确定要继续复制吗？")) {
+    return;
+  }
+  
   const text=mnemonicDiv.textContent;
   navigator.clipboard.writeText(text).then(()=>{
     const originalText = btnCopy.textContent;
@@ -1069,6 +1113,9 @@ btnCopy.addEventListener("click",()=>{
     setTimeout(() => {
       btnCopy.textContent = originalText;
     }, 2000);
+  }).catch((error) => {
+    console.error("复制失败:", error);
+    alert("复制失败: " + error.message);
   });
 });
 
@@ -1111,6 +1158,32 @@ btnDownload.addEventListener("click",()=>{
 document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('loaded');
 });
+
+// Calculate and display wordlist integrity hash
+(async () => {
+  try {
+    const wordlistText = WORDLIST.join('\n');
+    const encoder = new TextEncoder();
+    const data = encoder.encode(wordlistText);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    const hashDisplay = document.getElementById('wordlist-hash');
+    if (hashDisplay) {
+      hashDisplay.textContent = hashHex;
+      hashDisplay.style.color = '#0e9f6e';
+    }
+  } catch (error) {
+    console.error('计算词表哈希失败:', error);
+    const hashDisplay = document.getElementById('wordlist-hash');
+    if (hashDisplay) {
+      hashDisplay.textContent = '计算失败: ' + error.message;
+      hashDisplay.style.color = '#ff0000';
+    }
+  }
+})();
+
 })();
 </script>
 </body>
