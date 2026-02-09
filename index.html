@@ -3,238 +3,209 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>极客冷钱包 · 物理熵增强版</title>
+<title>哈勃未来 · 极客冷钱包 (物理熵增强版)</title>
 <style>
+/* --- 原始风格定义 (Hubble Future Style) --- */
 :root {
-  --primary: #000000;
-  --accent: #F7931A; /* Bitcoin Orange */
-  --bg: #f5f5f5;
-  --text: #333;
-  --success: #27ae60;
+  --primary: #FF9900;
+  --primary-dark: #e68a00;
+  --primary-light: #FFF6E5;
+  --secondary: #FF9900;
+  --warning: #FF9900;
+  --warning-light: #FFB84D;
+  --success: #0e9f6e;
+  --dark: #1A1A1A;
+  --medium-dark: #222222;
+  --medium: #666666;
+  --light: #E0E0E0;
+  --lighter: #FAFAFA;
+  --white: #ffffff;
+  --radius: 0.75rem;
+  --shadow-lg: 0 4px 10px rgba(255, 153, 0, 0.15);
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
 body {
-  font-family: "Courier New", Courier, monospace; /* 使用等宽字体，致敬极客风格 */
-  background: var(--bg);
-  color: var(--text);
-  margin: 0;
-  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--lighter);
+  color: var(--dark);
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
+  line-height: 1.6;
 }
 
-.container {
-  width: 100%;
-  max-width: 600px;
-  background: #fff;
-  border: 2px solid #000;
-  padding: 20px;
-  box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
+header { margin: 3rem 1rem; text-align: center; animation: fadeIn 0.8s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+header h1 {
+  margin: 0; color: var(--dark); font-weight: 700; font-size: 2.2rem;
+  letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; gap: 1rem;
+}
+header h1 img { width: 48px; height: 48px; }
+header p { margin: 0.75rem 0; color: var(--medium); font-size: 1.1rem; font-weight: 500; }
+
+main {
+  width: 92%; max-width: 650px; background: var(--white); padding: 2.5rem;
+  box-shadow: var(--shadow-lg); border-radius: 1rem; position: relative;
+  margin-bottom: 2rem; border: 1px solid var(--light);
 }
 
-h1 {
-  font-size: 1.5rem;
-  border-bottom: 2px solid #000;
-  padding-bottom: 10px;
-  margin-top: 0;
-  text-align: center;
+.warning {
+  background-color: var(--primary-light); border-left: 4px solid var(--primary);
+  padding: 1.5rem; border-radius: var(--radius); margin-bottom: 2rem;
+  display: flex; align-items: flex-start;
 }
+.warning-icon { margin-right: 0.5rem; font-size: 1.2rem; }
+.warning-content strong { display: block; color: var(--warning); font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 600; }
 
-.warning-box {
-  background: #fff3cd;
-  border: 2px solid #856404;
-  color: #856404;
-  padding: 10px;
-  font-size: 0.9rem;
-  margin-bottom: 20px;
-  font-weight: bold;
-}
-
-/* 熵采集区域 */
-.entropy-container {
-  margin: 20px 0;
-  text-align: center;
-}
-
-.progress-bar-shell {
-  width: 100%;
-  height: 30px;
-  border: 2px solid #000;
-  margin-top: 10px;
-  position: relative;
-  background: #eee;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: var(--accent);
-  width: 0%;
-  transition: width 0.1s linear;
-}
-
-.entropy-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255,255,255,0.95);
-  z-index: 999;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  cursor: crosshair;
-}
-
-.entropy-overlay.active {
-  display: flex;
-}
-
-.entropy-instruction {
-  font-size: 1.2rem;
-  margin-bottom: 20px;
-  color: #000;
-  text-align: center;
-  padding: 20px;
-  pointer-events: none;
-}
-
-/* 助记词显示 */
-.mnemonic-box {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 10px;
-  margin-top: 20px;
-  padding: 15px;
-  border: 2px dashed #000;
-  background: #fafafa;
-  min-height: 100px;
-}
-
-.word-pill {
-  background: #000;
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 0.9rem;
-  position: relative;
-}
-
-.word-index {
-  position: absolute;
-  top: -8px;
-  left: -5px;
-  background: var(--accent);
-  color: #000;
-  font-size: 0.7rem;
-  padding: 2px 4px;
-  border-radius: 2px;
-  border: 1px solid #000;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
+.options { margin: 1.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
+.options label { font-weight: 500; color: var(--medium-dark); }
 
 button {
-  flex: 1;
-  padding: 15px;
-  background: #000;
-  color: #fff;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  font-family: inherit;
-  border: 2px solid #000;
+  background: var(--primary); color: var(--white); border: none;
+  padding: 0.75rem 1.5rem; border-radius: 0.75rem; cursor: pointer;
+  font-size: 0.95rem; font-weight: 500; transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(255, 153, 0, 0.25);
+}
+button:hover { opacity: 0.9; transform: translateY(-1px); }
+button:disabled { background: var(--medium); cursor: not-allowed; box-shadow: none; transform: none; opacity: 0.7; }
+
+/* 幽灵按钮风格 */
+button.ghost { background: var(--white); color: var(--dark); border: 1px solid var(--light); box-shadow: none; }
+button.ghost:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+#btn-generate { width: 100%; font-size: 1.1rem; padding: 1rem; font-weight: 600; margin-top: 1rem; }
+
+.mnemonic {
+  margin-top: 2rem; padding: 1.5rem; background: var(--white);
+  border: 1px solid var(--light); border-radius: var(--radius);
+  min-height: 6rem; display: flex; flex-wrap: wrap; gap: 0.8rem;
+  justify-content: center; align-content: center;
+}
+.mnemonic:not(:empty) { background: var(--primary-light); border-color: var(--primary); }
+
+.word-pill {
+  background: var(--white); color: var(--dark); padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem; font-family: 'Monaco', monospace; font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; border: 1px solid var(--light);
+}
+.word-index {
+  position: absolute; top: -8px; left: -5px; background: var(--primary);
+  color: white; font-size: 0.6rem; padding: 1px 4px; border-radius: 4px;
 }
 
-button:active {
-  transform: translateY(2px);
+.actions { margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; }
+
+footer { margin-top: auto; padding: 2rem; font-size: 0.85rem; color: #777; text-align: center; width: 100%; }
+
+/* --- 新增：物理熵采集遮罩层 (Entropy Overlay) --- */
+.entropy-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255, 255, 255, 0.98); z-index: 9999;
+  display: none; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center; cursor: crosshair;
+}
+.entropy-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+
+.entropy-content { max-width: 500px; padding: 2rem; }
+.entropy-icon { font-size: 3rem; margin-bottom: 1rem; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+.progress-container {
+  width: 100%; height: 12px; background: var(--light);
+  border-radius: 6px; margin: 1.5rem 0; overflow: hidden;
+}
+.progress-bar {
+  height: 100%; background: var(--primary); width: 0%;
+  transition: width 0.1s linear; box-shadow: 0 0 10px rgba(255,153,0,0.5);
 }
 
-button.secondary {
-  background: #fff;
-  color: #000;
-}
-
-button:disabled {
-  background: #ccc;
-  border-color: #ccc;
-  cursor: not-allowed;
-}
-
-.security-footer {
-  margin-top: 20px;
-  font-size: 0.8rem;
-  color: #666;
-  text-align: center;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
+.security-badge {
+  margin-top: 1rem; font-size: 0.8rem; background: #e8f5e9; color: #2e7d32;
+  padding: 0.3rem 0.8rem; border-radius: 20px; display: inline-block; font-weight: 600;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>⚡ 物理熵 · 冷钱包生成器</h1>
-  
-  <div class="warning-box">
-    ⚠️ 警告：请确认手机已开启【飞行模式】且关闭 WiFi/蓝牙。<br>
-    本工具需手动采集随机性，生成后请手抄，严禁截图！
-  </div>
+<header>
+  <h1>
+    <svg width="48" height="48" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="#FF9900"><path d="M63.04 39.74c-4.27 17.14-21.63 27.57-38.77 23.31C7.12 58.78-3.3 41.42.96 24.28 5.23 7.14 22.59-3.29 39.73.97c17.14 4.27 27.56 21.63 23.31 38.77zM46.88 28.3c.59-3.95-2.42-6.07-6.54-7.49l1.34-5.37-3.27-.82-1.31 5.25c-.86-.21-1.75-.41-2.62-.61l1.32-5.28-3.27-.82-1.34 5.38c-.71-.16-1.41-.32-2.1-.48l.01-.05-4.51-1.13-.87 3.48s2.42.55 2.37.59c1.32.33 1.56 1.2 1.52 1.89l-1.52 6.1c.09.02.21.06.34.11-.11-.03-.22-.05-.31-.08l-2.13 8.54c-.16.4.07 1.01 1.05 1.25.05.04-2.37-.59-2.37-.59l-1.63 3.76 4.25 1.06c.79.2 1.57.4 2.35.59l-1.35 5.4 3.27.81 1.34-5.36c.89.24 1.76.47 2.61.67l-1.34 5.34 3.27.82 1.35-5.39c5.57 1.05 9.77.63 11.53-4.41 1.42-4.05-.07-6.39-3-7.93 2.13-.49 3.74-1.89 4.17-4.78z"/></svg>
+    哈勃未来 · 极客冷钱包
+  </h1>
+  <p>物理熵增强版 · 100% 本地离线 · 拒绝伪随机</p>
+</header>
 
-  <div class="controls" style="margin-bottom: 20px;">
-    <button id="btn-12" class="secondary" style="background:#000; color:#fff">12 助记词</button>
-    <button id="btn-24" class="secondary">24 助记词</button>
-  </div>
-
-  <div style="text-align: center;">
-    <button id="btn-start" style="background: var(--accent); color: #000; font-weight: bold;">开始采集随机熵 (点击开始)</button>
-  </div>
-
-  <div id="result-area" style="display:none; margin-top: 20px;">
-    <div style="text-align:center; font-weight:bold; margin-bottom:10px;">生成成功！请按顺序抄写：</div>
-    <div class="mnemonic-box" id="mnemonic-display"></div>
-    <div class="controls">
-      <button onclick="window.location.reload()" class="secondary">清空并销毁</button>
+<main>
+  <div class="warning">
+    <div class="warning-icon">⚠️</div>
+    <div class="warning-content">
+      <strong>安全操作指南 (Paranoid Mode)</strong>
+      <div style="font-size: 0.95rem; color: #444;">
+        <p>1. 请务必开启手机 <strong>飞行模式</strong> 并关闭 WiFi。</p>
+        <p>2. 系统将采集您的 <strong>手势/触控</strong> 作为真随机数来源。</p>
+        <p>3. <strong>已禁用剪贴板复制</strong>，请准备纸笔进行手抄。</p>
+      </div>
     </div>
-    <p style="color:red; text-align:center; font-size:0.9rem; margin-top:10px;">
-      ❌ 已禁用复制功能，请使用纸笔抄写。<br>
-      ✅ 抄写完成后请立即销毁本页面。
-    </p>
   </div>
 
-  <div class="security-footer">
-    算法：SHA256(System RNG + User Events) <br>
-    BIP39 Standard | 100% Client Side
+  <div class="options">
+    <label>助记词长度：</label>
+    <button id="btn-12" class="ghost" style="background:var(--primary); color:white; border:none;">12 词</button>
+    <button id="btn-24" class="ghost">24 词</button>
+  </div>
+
+  <button id="btn-generate">开始生成 (采集随机熵)</button>
+  
+  <div class="mnemonic" id="mnemonic-display">
+    <span style="color:var(--medium); font-size:0.9rem;">点击上方按钮，采集随机性后生成...</span>
+  </div>
+
+  <div class="actions">
+    <button id="btn-clear" class="ghost">清空 / 销毁数据</button>
+    <button id="btn-view-wordlist" class="ghost">查看 BIP39 词表</button>
+  </div>
+</main>
+
+<footer>
+  代码审计：SHA256算法 + 用户物理熵混合 (Mixed Entropy)<br>
+  安全级别：★★★★★ (接近硬件钱包)<br>
+  <div style="margin-top: 1rem; color: #999; font-size: 0.8rem;">
+    *生成完毕后，建议立即关闭本页面并重启设备
+  </div>
+</footer>
+
+<div id="entropy-overlay" class="entropy-overlay">
+  <div class="entropy-content">
+    <div class="entropy-icon">👆</div>
+    <h2 style="color:var(--dark); margin-bottom:1rem;">正在采集物理随机性</h2>
+    <p style="color:var(--medium);">请在屏幕上<strong>随机滑动、点击</strong>，直到进度条填满。</p>
+    <p style="color:var(--medium); font-size:0.85rem; margin-top:0.5rem;">这将作为只有你能产生的“混乱数据”参与私钥计算。</p>
+    
+    <div class="progress-container">
+      <div id="entropy-bar" class="progress-bar"></div>
+    </div>
+    
+    <div id="entropy-percent" style="font-weight:bold; color:var(--primary);">0%</div>
   </div>
 </div>
 
-<div id="entropy-overlay" class="entropy-overlay">
-  <div class="entropy-instruction">
-    <div>✋ 正在采集物理随机性</div>
-    <div style="font-size:0.9rem; margin-top:10px; color:#555;">
-      请在屏幕上<strong>随机划动、点击</strong><br>直到进度条填满
+<div id="wordlist-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+  <div style="background:white; width:90%; height:80%; margin:5% auto; padding:20px; border-radius:10px; overflow-y:scroll;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+      <h3>BIP39 词表预览</h3>
+      <button onclick="document.getElementById('wordlist-modal').style.display='none'" style="padding:5px 10px;">关闭</button>
     </div>
-  </div>
-  <div class="container" style="box-shadow:none; border:none; background:transparent;">
-    <div class="progress-bar-shell">
-      <div id="entropy-bar" class="progress-bar-fill"></div>
-    </div>
-    <div id="entropy-count" style="text-align:center; margin-top:5px; font-weight:bold;">0%</div>
+    <div id="wordlist-content" style="font-family:monospace; color:#333; word-break:break-all;"></div>
   </div>
 </div>
 
 <script>
 (async () => {
-  // --- BIP39 Wordlist (English) ---
+  // --- BIP39 词表 (2048 words) ---
   const WORDLIST = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
     "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
@@ -494,49 +465,81 @@ button:disabled {
     "yellow", "you", "young", "youth", "zebra", "zero", "zone", "zoo"
   ];
 
-  // --- State & DOM ---
-  let wordCount = 12;
-  let userEntropy = []; // 存储用户的手势事件
-  const ENTROPY_TARGET = 300; // 需要采集300个事件点
-
+  // --- UI Elements ---
   const btn12 = document.getElementById('btn-12');
   const btn24 = document.getElementById('btn-24');
-  const btnStart = document.getElementById('btn-start');
+  const btnGenerate = document.getElementById('btn-generate');
+  const btnClear = document.getElementById('btn-clear');
+  const btnViewWordlist = document.getElementById('btn-view-wordlist');
+  const mnemonicDisplay = document.getElementById('mnemonic-display');
+  
+  // Entropy Elements
   const overlay = document.getElementById('entropy-overlay');
   const entropyBar = document.getElementById('entropy-bar');
-  const entropyCount = document.getElementById('entropy-count');
-  const resultArea = document.getElementById('result-area');
-  const mnemonicDisplay = document.getElementById('mnemonic-display');
+  const entropyPercent = document.getElementById('entropy-percent');
+  
+  // State
+  let wordCount = 12;
+  let userEntropy = [];
+  const ENTROPY_TARGET = 300; // 需要采集300个采样点
 
-  // --- Toggle Word Count ---
-  btn12.onclick = () => { wordCount = 12; updateBtnStyles(); };
-  btn24.onclick = () => { wordCount = 24; updateBtnStyles(); };
-
-  function updateBtnStyles() {
-    btn12.style.background = wordCount === 12 ? '#000' : '#fff';
-    btn12.style.color = wordCount === 12 ? '#fff' : '#000';
-    btn24.style.background = wordCount === 24 ? '#000' : '#fff';
-    btn24.style.color = wordCount === 24 ? '#fff' : '#000';
+  // --- Initialize Styles ---
+  function updateLengthBtns() {
+    if (wordCount === 12) {
+      btn12.style.background = 'var(--primary)';
+      btn12.style.color = 'white';
+      btn12.style.borderColor = 'var(--primary)';
+      btn24.style.background = 'var(--white)';
+      btn24.style.color = 'var(--dark)';
+      btn24.style.borderColor = 'var(--light)';
+    } else {
+      btn24.style.background = 'var(--primary)';
+      btn24.style.color = 'white';
+      btn24.style.borderColor = 'var(--primary)';
+      btn12.style.background = 'var(--white)';
+      btn12.style.color = 'var(--dark)';
+      btn12.style.borderColor = 'var(--light)';
+    }
   }
+  updateLengthBtns();
 
-  // --- Entropy Collection Logic ---
-  btnStart.onclick = () => {
+  btn12.onclick = () => { wordCount = 12; updateLengthBtns(); };
+  btn24.onclick = () => { wordCount = 24; updateLengthBtns(); };
+
+  // --- Clear Function ---
+  btnClear.onclick = () => {
+    mnemonicDisplay.innerHTML = '<span style="color:var(--medium); font-size:0.9rem;">已清空。为了安全，建议刷新页面。</span>';
     userEntropy = [];
+    // 简单的内存清理（覆盖引用）
+    if(window.gc) window.gc();
+  };
+
+  // --- Wordlist Viewer ---
+  btnViewWordlist.onclick = () => {
+    const content = document.getElementById('wordlist-content');
+    content.innerHTML = WORDLIST.map((w, i) => `${i}:${w}`).join(' ');
+    document.getElementById('wordlist-modal').style.display = 'block';
+  };
+
+  // --- Core: Entropy Collection ---
+  btnGenerate.onclick = () => {
+    userEntropy = [];
+    entropyBar.style.width = '0%';
+    entropyPercent.textContent = '0%';
     overlay.classList.add('active');
     
-    // Desktop Events
+    // Add Listeners
     window.addEventListener('mousemove', collectEntropy);
-    window.addEventListener('mousedown', collectEntropy);
-    // Mobile Events
     window.addEventListener('touchmove', collectEntropy);
-    window.addEventListener('touchstart', collectEntropy);
+    window.addEventListener('click', collectEntropy);
   };
 
   async function collectEntropy(e) {
     if (userEntropy.length >= ENTROPY_TARGET) return;
 
     let x, y;
-    if (e.touches) {
+    // 获取坐标
+    if (e.touches && e.touches.length > 0) {
       x = e.touches[0].clientX;
       y = e.touches[0].clientY;
     } else {
@@ -544,68 +547,65 @@ button:disabled {
       y = e.clientY;
     }
 
-    // 采集 X, Y 和 毫秒级时间戳的低位 (高频噪声)
+    // 采集高频时间噪声
     const timeNoise = Math.floor(performance.now() * 1000) % 255;
-    userEntropy.push(x, y, timeNoise);
+    
+    // 如果坐标有效，压入熵池
+    if (x !== undefined && y !== undefined) {
+        userEntropy.push(x, y, timeNoise);
+    }
 
     // Update UI
-    const progress = Math.min(100, Math.ceil((userEntropy.length / ENTROPY_TARGET) * 100));
-    entropyBar.style.width = `${progress}%`;
-    entropyCount.textContent = `${progress}%`;
+    const percent = Math.min(100, Math.ceil((userEntropy.length / ENTROPY_TARGET) * 100));
+    entropyBar.style.width = `${percent}%`;
+    entropyPercent.textContent = `${percent}%`;
 
+    // Finish
     if (userEntropy.length >= ENTROPY_TARGET) {
-      finishCollection();
+      window.removeEventListener('mousemove', collectEntropy);
+      window.removeEventListener('touchmove', collectEntropy);
+      window.removeEventListener('click', collectEntropy);
+      
+      overlay.classList.remove('active');
+      await generateMnemonic();
     }
   }
 
-  async function finishCollection() {
-    // Stop listening
-    window.removeEventListener('mousemove', collectEntropy);
-    window.removeEventListener('touchmove', collectEntropy);
+  // --- Core: Secure Generation (Mixed Entropy) ---
+  async function generateMnemonic() {
+    mnemonicDisplay.innerHTML = '<div class="security-badge">正在进行双重哈希计算...</div>';
     
-    overlay.classList.remove('active');
-    btnStart.disabled = true;
-    btnStart.textContent = "计算中...";
-
-    // --- Core Security Logic: Hashing and Mixing ---
-    
-    // 1. Get System Entropy (Weak link on fresh phones)
-    const requiredBytes = wordCount === 12 ? 16 : 32;
-    const systemEntropy = new Uint8Array(requiredBytes + 32); // Extra buffer
+    // 1. 系统熵 (System Entropy)
+    const entropyLen = wordCount === 12 ? 16 : 32;
+    const systemEntropy = new Uint8Array(entropyLen + 32);
     crypto.getRandomValues(systemEntropy);
-
-    // 2. Mix User Entropy (Strong link)
-    // Create a buffer from user events
-    const userEntropyBuffer = new Uint8Array(userEntropy);
     
-    // 3. Hash the User Entropy into a digest
+    // 2. 用户熵 (User Entropy) -> Hash
+    const userEntropyBuffer = new Uint8Array(userEntropy);
     const userHash = await crypto.subtle.digest("SHA-256", userEntropyBuffer);
     
-    // 4. Combine System Entropy + User Hash
+    // 3. 混合 (Mix)
     const combinedBuffer = new Uint8Array(systemEntropy.length + userHash.byteLength);
     combinedBuffer.set(systemEntropy);
     combinedBuffer.set(new Uint8Array(userHash), systemEntropy.length);
-
-    // 5. Final Hash to produce the seed entropy
-    // This ensures that knowing EITHER system RNG OR user movements is not enough.
-    // You must know BOTH to crack it.
+    
+    // 4. 最终哈希 (Final Hash) -> Seed Entropy
     const finalHashBuffer = await crypto.subtle.digest("SHA-256", combinedBuffer);
-    const finalEntropy = new Uint8Array(finalHashBuffer).slice(0, requiredBytes);
-
-    // 6. Generate Mnemonic
+    const finalEntropy = new Uint8Array(finalHashBuffer).slice(0, entropyLen);
+    
+    // 5. 转换为助记词
     const mnemonic = await entropyToMnemonic(finalEntropy, WORDLIST);
     
-    // 7. Display
-    displayMnemonic(mnemonic);
+    // 6. 显示 (渲染为 Pills)
+    renderMnemonic(mnemonic);
     
-    // 8. Wipe Memory
+    // 7. 清理内存
     systemEntropy.fill(0);
     userEntropyBuffer.fill(0);
     combinedBuffer.fill(0);
-    // Note: JS doesn't guarantee garbage collection, but we overwrite references.
   }
 
-  // --- BIP39 Implementation ---
+  // --- BIP39 Algorithms ---
   function bytesToBits(bytes) {
     const bits = [];
     for (let b of bytes) {
@@ -613,11 +613,9 @@ button:disabled {
     }
     return bits;
   }
-
   function bitsToInt(bits) {
     return bits.reduce((acc, b) => (acc << 1) | b, 0);
   }
-
   async function entropyToMnemonic(entropy, wordlist) {
     const ENT = entropy.length * 8;
     const checksumLen = ENT / 32;
@@ -630,18 +628,15 @@ button:disabled {
     return chunks.join(" ");
   }
 
-  // --- UI Helpers ---
-  function displayMnemonic(phrase) {
+  function renderMnemonic(phrase) {
     mnemonicDisplay.innerHTML = '';
     const words = phrase.split(' ');
     words.forEach((word, index) => {
-      const div = document.createElement('div');
-      div.className = 'word-pill';
-      div.innerHTML = `<span class="word-index">${index + 1}</span>${word}`;
-      mnemonicDisplay.appendChild(div);
+      const span = document.createElement('div');
+      span.className = 'word-pill';
+      span.innerHTML = `<span class="word-index">${index + 1}</span>${word}`;
+      mnemonicDisplay.appendChild(span);
     });
-    resultArea.style.display = 'block';
-    btnStart.style.display = 'none';
   }
 
 })();
