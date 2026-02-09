@@ -2,210 +2,265 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>哈勃未来 · 极客冷钱包 (物理熵增强版)</title>
+<title>哈勃未来 v3.0 · 普罗米修斯冷钱包</title>
 <style>
-/* --- 原始风格定义 (Hubble Future Style) --- */
+/* --- 极客风格定义 (Hubble Future Style) --- */
 :root {
   --primary: #FF9900;
-  --primary-dark: #e68a00;
-  --primary-light: #FFF6E5;
-  --secondary: #FF9900;
-  --warning: #FF9900;
-  --warning-light: #FFB84D;
-  --success: #0e9f6e;
-  --dark: #1A1A1A;
-  --medium-dark: #222222;
-  --medium: #666666;
-  --light: #E0E0E0;
-  --lighter: #FAFAFA;
-  --white: #ffffff;
-  --radius: 0.75rem;
-  --shadow-lg: 0 4px 10px rgba(255, 153, 0, 0.15);
+  --bg: #1a1a1a;
+  --panel: #252525;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --success: #00C853;
+  --danger: #ff4444;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: var(--lighter);
-  color: var(--dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  line-height: 1.6;
+  padding: 20px;
 }
 
-header { margin: 3rem 1rem; text-align: center; animation: fadeIn 0.8s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-header h1 {
-  margin: 0; color: var(--dark); font-weight: 700; font-size: 2.2rem;
-  letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; gap: 1rem;
-}
-header h1 img { width: 48px; height: 48px; }
-header p { margin: 0.75rem 0; color: var(--medium); font-size: 1.1rem; font-weight: 500; }
-
-main {
-  width: 92%; max-width: 650px; background: var(--white); padding: 2.5rem;
-  box-shadow: var(--shadow-lg); border-radius: 1rem; position: relative;
-  margin-bottom: 2rem; border: 1px solid var(--light);
+.container {
+  width: 100%;
+  max-width: 700px;
+  background: var(--panel);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border: 1px solid #333;
+  padding: 30px;
+  margin-top: 20px;
 }
 
-.warning {
-  background-color: var(--primary-light); border-left: 4px solid var(--primary);
-  padding: 1.5rem; border-radius: var(--radius); margin-bottom: 2rem;
-  display: flex; align-items: flex-start;
-}
-.warning-icon { margin-right: 0.5rem; font-size: 1.2rem; }
-.warning-content strong { display: block; color: var(--warning); font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 600; }
+header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 20px; }
+h1 { color: var(--primary); font-size: 1.8rem; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.badge { font-size: 0.7rem; background: #333; color: var(--primary); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--primary); vertical-align: middle; }
+header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 10px; }
 
-.options { margin: 1.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
-.options label { font-weight: 500; color: var(--medium-dark); }
-
-button {
-  background: var(--primary); color: var(--white); border: none;
-  padding: 0.75rem 1.5rem; border-radius: 0.75rem; cursor: pointer;
-  font-size: 0.95rem; font-weight: 500; transition: all 0.2s ease;
-  box-shadow: 0 4px 10px rgba(255, 153, 0, 0.25);
-}
-button:hover { opacity: 0.9; transform: translateY(-1px); }
-button:disabled { background: var(--medium); cursor: not-allowed; box-shadow: none; transform: none; opacity: 0.7; }
-
-/* 幽灵按钮风格 */
-button.ghost { background: var(--white); color: var(--dark); border: 1px solid var(--light); box-shadow: none; }
-button.ghost:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
-
-#btn-generate { width: 100%; font-size: 1.1rem; padding: 1rem; font-weight: 600; margin-top: 1rem; }
-
-.mnemonic {
-  margin-top: 2rem; padding: 1.5rem; background: var(--white);
-  border: 1px solid var(--light); border-radius: var(--radius);
-  min-height: 6rem; display: flex; flex-wrap: wrap; gap: 0.8rem;
-  justify-content: center; align-content: center;
-}
-.mnemonic:not(:empty) { background: var(--primary-light); border-color: var(--primary); }
-
-.word-pill {
-  background: var(--white); color: var(--dark); padding: 0.4rem 0.8rem;
-  border-radius: 0.5rem; font-family: 'Monaco', monospace; font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; border: 1px solid var(--light);
-}
-.word-index {
-  position: absolute; top: -8px; left: -5px; background: var(--primary);
-  color: white; font-size: 0.6rem; padding: 1px 4px; border-radius: 4px;
+/* 警告框 */
+.warning-box {
+  background: rgba(255, 153, 0, 0.1);
+  border-left: 4px solid var(--primary);
+  padding: 15px;
+  margin-bottom: 25px;
+  font-size: 0.9rem;
+  color: #ffb74d;
 }
 
-.actions { margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; }
+/* 熵输入区域 */
+.section-title { font-size: 1rem; color: var(--text); margin-bottom: 10px; border-left: 3px solid var(--primary); padding-left: 10px; font-weight: bold; }
 
-footer { margin-top: auto; padding: 2rem; font-size: 0.85rem; color: #777; text-align: center; width: 100%; }
-
-/* --- 新增：物理熵采集遮罩层 (Entropy Overlay) --- */
-.entropy-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(255, 255, 255, 0.98); z-index: 9999;
-  display: none; flex-direction: column; justify-content: center; align-items: center;
-  text-align: center; cursor: crosshair;
+.entropy-source {
+  background: #111;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px dashed #444;
+  margin-bottom: 20px;
 }
-.entropy-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
 
-.entropy-content { max-width: 500px; padding: 2rem; }
-.entropy-icon { font-size: 3rem; margin-bottom: 1rem; animation: pulse 1s infinite; }
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+.dice-input-area {
+  width: 100%;
+  background: #000;
+  border: 1px solid #333;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 10px;
+  resize: vertical;
+  min-height: 80px;
+}
+.dice-input-area::placeholder { color: #444; font-size: 0.9rem; }
 
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+/* 进度条 */
 .progress-container {
-  width: 100%; height: 12px; background: var(--light);
-  border-radius: 6px; margin: 1.5rem 0; overflow: hidden;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  margin: 10px 0;
+  overflow: hidden;
 }
 .progress-bar {
-  height: 100%; background: var(--primary); width: 0%;
-  transition: width 0.1s linear; box-shadow: 0 0 10px rgba(255,153,0,0.5);
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  transition: width 0.2s;
+  box-shadow: 0 0 10px var(--primary);
 }
 
-.security-badge {
-  margin-top: 1rem; font-size: 0.8rem; background: #e8f5e9; color: #2e7d32;
-  padding: 0.3rem 0.8rem; border-radius: 20px; display: inline-block; font-weight: 600;
+/* 助记词显示区 */
+.mnemonic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+  padding: 20px;
+  background: #000;
+  border: 1px solid #333;
+  border-radius: 8px;
+  min-height: 100px;
+  filter: blur(5px); /* 默认模糊，生成后清晰 */
+  transition: filter 0.5s;
+}
+.mnemonic-grid.revealed { filter: blur(0); }
+
+.word-pill {
+  background: #1a1a1a;
+  color: var(--primary);
+  border: 1px solid #333;
+  padding: 8px;
+  text-align: center;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  position: relative;
+}
+.word-index {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  background: #333;
+  color: #fff;
+  font-size: 0.6rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* 按钮组 */
+.btn-group { display: flex; gap: 10px; margin-top: 20px; }
+button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--primary); color: #000; }
+.btn-primary:hover { background: #ffaa33; }
+.btn-primary:disabled { background: #555; cursor: not-allowed; }
+
+.btn-ghost { background: transparent; border: 1px solid #555; color: #aaa; }
+.btn-ghost:hover { border-color: #fff; color: #fff; }
+
+footer { margin-top: 30px; font-size: 0.75rem; color: #555; text-align: center; }
+
+/* 鼠标采集遮罩 */
+#mouse-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.95); z-index: 999;
+  display: none; flex-direction: column; justify-content: center; align-items: center;
+  cursor: crosshair;
 }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>
-    <svg width="48" height="48" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="#FF9900"><path d="M63.04 39.74c-4.27 17.14-21.63 27.57-38.77 23.31C7.12 58.78-3.3 41.42.96 24.28 5.23 7.14 22.59-3.29 39.73.97c17.14 4.27 27.56 21.63 23.31 38.77zM46.88 28.3c.59-3.95-2.42-6.07-6.54-7.49l1.34-5.37-3.27-.82-1.31 5.25c-.86-.21-1.75-.41-2.62-.61l1.32-5.28-3.27-.82-1.34 5.38c-.71-.16-1.41-.32-2.1-.48l.01-.05-4.51-1.13-.87 3.48s2.42.55 2.37.59c1.32.33 1.56 1.2 1.52 1.89l-1.52 6.1c.09.02.21.06.34.11-.11-.03-.22-.05-.31-.08l-2.13 8.54c-.16.4.07 1.01 1.05 1.25.05.04-2.37-.59-2.37-.59l-1.63 3.76 4.25 1.06c.79.2 1.57.4 2.35.59l-1.35 5.4 3.27.81 1.34-5.36c.89.24 1.76.47 2.61.67l-1.34 5.34 3.27.82 1.35-5.39c5.57 1.05 9.77.63 11.53-4.41 1.42-4.05-.07-6.39-3-7.93 2.13-.49 3.74-1.89 4.17-4.78z"/></svg>
-    哈勃未来 · 极客冷钱包
-  </h1>
-  <p>物理熵增强版 · 100% 本地离线 · 拒绝伪随机</p>
-</header>
+<div class="container">
+  <header>
+    <h1>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      哈勃未来 <span class="badge">v3.0 PROMETHEUS</span>
+    </h1>
+    <p>真·物理熵冷钱包 | 代码开源 | 拒绝伪随机</p>
+  </header>
 
-<main>
-  <div class="warning">
-    <div class="warning-icon">⚠️</div>
-    <div class="warning-content">
-      <strong>安全操作指南 (Paranoid Mode)</strong>
-      <div style="font-size: 0.95rem; color: #444;">
-        <p>1. 请务必开启手机 <strong>飞行模式</strong> 并关闭 WiFi。</p>
-        <p>2. 系统将采集您的 <strong>手势/触控</strong> 作为真随机数来源。</p>
-        <p>3. <strong>已禁用剪贴板复制</strong>，请准备纸笔进行手抄。</p>
-      </div>
+  <div class="warning-box">
+    <strong>⚠️ 极客操作规范 (Audit Compliant)：</strong><br>
+    1. 本页面已开启 CSP 防御，强制切断所有网络连接。<br>
+    2. 推荐使用<strong>“骰子/硬币”</strong>模式，物理随机性无法被黑客预测。<br>
+    3. 生成完毕后，请立即关闭页面并重启设备以清除内存。
+  </div>
+
+  <div class="section-title">熵源 I: 物理世界 (上帝模式)</div>
+  <div class="entropy-source">
+    <div style="font-size:0.85rem; color:#aaa; margin-bottom:5px;">
+      请掷骰子(1-6)、抛硬币(0/1)或洗扑克牌，将结果连续输入下方：
     </div>
-  </div>
-
-  <div class="options">
-    <label>助记词长度：</label>
-    <button id="btn-12" class="ghost" style="background:var(--primary); color:white; border:none;">12 词</button>
-    <button id="btn-24" class="ghost">24 词</button>
-  </div>
-
-  <button id="btn-generate">开始生成 (采集随机熵)</button>
-  
-  <div class="mnemonic" id="mnemonic-display">
-    <span style="color:var(--medium); font-size:0.9rem;">点击上方按钮，采集随机性后生成...</span>
-  </div>
-
-  <div class="actions">
-    <button id="btn-clear" class="ghost">清空 / 销毁数据</button>
-    <button id="btn-view-wordlist" class="ghost">查看 BIP39 词表</button>
-  </div>
-</main>
-
-<footer>
-  代码审计：SHA256算法 + 用户物理熵混合 (Mixed Entropy)<br>
-  安全级别：★★★★★ (接近硬件钱包)<br>
-  <div style="margin-top: 1rem; color: #999; font-size: 0.8rem;">
-    *生成完毕后，建议立即关闭本页面并重启设备
-  </div>
-</footer>
-
-<div id="entropy-overlay" class="entropy-overlay">
-  <div class="entropy-content">
-    <div class="entropy-icon">👆</div>
-    <h2 style="color:var(--dark); margin-bottom:1rem;">正在采集物理随机性</h2>
-    <p style="color:var(--medium);">请在屏幕上<strong>随机滑动、点击</strong>，直到进度条填满。</p>
-    <p style="color:var(--medium); font-size:0.85rem; margin-top:0.5rem;">这将作为只有你能产生的“混乱数据”参与私钥计算。</p>
-    
+    <textarea id="dice-input" class="dice-input-area" placeholder="例如: 142536... 或 010110... (建议至少输入50次)"></textarea>
     <div class="progress-container">
-      <div id="entropy-bar" class="progress-bar"></div>
+      <div id="dice-bar" class="progress-bar" style="width:0%"></div>
     </div>
-    
-    <div id="entropy-percent" style="font-weight:bold; color:var(--primary);">0%</div>
+    <div class="stats-row">
+      <span id="entropy-bits">当前熵值: 0 bits</span>
+      <span id="crack-time" style="color:var(--danger)">不安全 (极易破解)</span>
+    </div>
   </div>
+
+  <div class="section-title">熵源 II: 混合增强</div>
+  <div style="margin-bottom:20px;">
+    <button id="btn-mouse-start" class="btn-ghost" style="width:100%; padding:10px;">
+      👆 点击采集鼠标/触摸轨迹 (补充熵)
+    </button>
+  </div>
+
+  <div class="section-title">生成结果</div>
+  <div class="btn-group" style="margin-bottom:15px;">
+    <button id="btn-12" class="btn-ghost" style="border-color:var(--primary); color:var(--primary);">12 助记词</button>
+    <button id="btn-24" class="btn-ghost">24 助记词</button>
+  </div>
+  
+  <div id="mnemonic-box" class="mnemonic-grid">
+    <div style="grid-column:1/-1; text-align:center; color:#555; padding:20px;">
+      等待熵值填充...
+    </div>
+  </div>
+
+  <button id="btn-generate" class="btn-primary" disabled>
+    🔒 熵值不足，无法生成
+  </button>
+  
+  <div class="btn-group">
+    <button id="btn-clear" class="btn-ghost" style="color:#ff4444; border-color:#ff4444;">销毁数据 (Wipe Memory)</button>
+  </div>
+
+  <footer>
+    <div style="margin-bottom:5px;">SHA-256( Dice_Input + System_RNG + Mouse_Events )</div>
+    <div>Code Verification: Press F12 to audit source logic</div>
+  </footer>
 </div>
 
-<div id="wordlist-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-  <div style="background:white; width:90%; height:80%; margin:5% auto; padding:20px; border-radius:10px; overflow-y:scroll;">
-    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-      <h3>BIP39 词表预览</h3>
-      <button onclick="document.getElementById('wordlist-modal').style.display='none'" style="padding:5px 10px;">关闭</button>
-    </div>
-    <div id="wordlist-content" style="font-family:monospace; color:#333; word-break:break-all;"></div>
+<div id="mouse-overlay">
+  <div style="color:var(--primary); font-size:2rem; margin-bottom:20px;">🖐️</div>
+  <h2 style="color:#fff;">移动鼠标 / 滑动屏幕</h2>
+  <p style="color:#aaa;">采集进度: <span id="mouse-percent">0</span>%</p>
+  <div style="width:300px; height:6px; background:#333; margin-top:10px; border-radius:3px;">
+    <div id="mouse-bar" style="height:100%; width:0%; background:var(--primary);"></div>
   </div>
 </div>
 
 <script>
-(async () => {
-  // --- BIP39 词表 (2048 words) ---
+// --- 0. 核心配置与状态 ---
+const STATE = {
+  wordCount: 12,
+  diceEntropy: "",
+  mouseEntropy: [],
+  systemEntropy: null,
+  isMouseDone: false
+};
+
+// --- 1. BIP39 英文词表 (2048词, 必须完整包含以确保离线运行) ---
   const WORDLIST = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
     "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
@@ -465,181 +520,212 @@ footer { margin-top: auto; padding: 2rem; font-size: 0.85rem; color: #777; text-
     "yellow", "you", "young", "youth", "zebra", "zero", "zone", "zoo"
   ];
 
-  // --- UI Elements ---
-  const btn12 = document.getElementById('btn-12');
-  const btn24 = document.getElementById('btn-24');
-  const btnGenerate = document.getElementById('btn-generate');
-  const btnClear = document.getElementById('btn-clear');
-  const btnViewWordlist = document.getElementById('btn-view-wordlist');
-  const mnemonicDisplay = document.getElementById('mnemonic-display');
+// --- 2. 熵值计算与 UI 逻辑 ---
+
+const dom = {
+  diceInput: document.getElementById('dice-input'),
+  diceBar: document.getElementById('dice-bar'),
+  entropyBits: document.getElementById('entropy-bits'),
+  crackTime: document.getElementById('crack-time'),
+  btn12: document.getElementById('btn-12'),
+  btn24: document.getElementById('btn-24'),
+  btnGenerate: document.getElementById('btn-generate'),
+  btnClear: document.getElementById('btn-clear'),
+  mnemonicBox: document.getElementById('mnemonic-box'),
+  mouseOverlay: document.getElementById('mouse-overlay')
+};
+
+// 切换长度
+dom.btn12.onclick = () => setLength(12);
+dom.btn24.onclick = () => setLength(24);
+
+function setLength(n) {
+  STATE.wordCount = n;
+  dom.btn12.style.borderColor = n===12 ? 'var(--primary)' : '#555';
+  dom.btn12.style.color = n===12 ? 'var(--primary)' : '#aaa';
+  dom.btn24.style.borderColor = n===24 ? 'var(--primary)' : '#555';
+  dom.btn24.style.color = n===24 ? 'var(--primary)' : '#aaa';
+  checkEntropy();
+}
+
+// 熵值估算 (Shannon Entropy)
+function calculateEntropy(str) {
+  if(!str) return 0;
+  const len = str.length;
+  const freqs = {};
+  for(let char of str) freqs[char] = (freqs[char] || 0) + 1;
+  let entropy = 0;
+  for(let char in freqs) {
+    const p = freqs[char] / len;
+    entropy -= p * Math.log2(p);
+  }
+  return Math.floor(entropy * len); // Total bits
+}
+
+dom.diceInput.addEventListener('input', (e) => {
+  const input = e.target.value;
+  STATE.diceEntropy = input;
+  const bits = calculateEntropy(input);
   
-  // Entropy Elements
-  const overlay = document.getElementById('entropy-overlay');
-  const entropyBar = document.getElementById('entropy-bar');
-  const entropyPercent = document.getElementById('entropy-percent');
+  // 更新UI
+  const percent = Math.min(100, (bits / 256) * 100);
+  dom.diceBar.style.width = `${percent}%`;
+  dom.entropyBits.innerText = `当前熵值: ${bits} bits`;
   
-  // State
-  let wordCount = 12;
-  let userEntropy = [];
-  const ENTROPY_TARGET = 300; // 需要采集300个采样点
+  // 安全评级
+  let status = "不安全";
+  let color = "var(--danger)";
+  if(bits > 128) { status = "一般"; color = "#ffaa00"; }
+  if(bits > 250) { status = "极强 (量子级)"; color = "var(--success)"; }
+  dom.crackTime.innerText = status;
+  dom.crackTime.style.color = color;
+  
+  checkEntropy();
+});
 
-  // --- Initialize Styles ---
-  function updateLengthBtns() {
-    if (wordCount === 12) {
-      btn12.style.background = 'var(--primary)';
-      btn12.style.color = 'white';
-      btn12.style.borderColor = 'var(--primary)';
-      btn24.style.background = 'var(--white)';
-      btn24.style.color = 'var(--dark)';
-      btn24.style.borderColor = 'var(--light)';
-    } else {
-      btn24.style.background = 'var(--primary)';
-      btn24.style.color = 'white';
-      btn24.style.borderColor = 'var(--primary)';
-      btn12.style.background = 'var(--white)';
-      btn12.style.color = 'var(--dark)';
-      btn12.style.borderColor = 'var(--light)';
+// 鼠标采集逻辑
+document.getElementById('btn-mouse-start').onclick = () => {
+  STATE.mouseEntropy = [];
+  dom.mouseOverlay.style.display = 'flex';
+  
+  const collect = (e) => {
+    let x = e.touches ? e.touches[0].clientX : e.clientX;
+    let y = e.touches ? e.touches[0].clientY : e.clientY;
+    // 采集: X, Y, 以及毫秒级时间差
+    STATE.mouseEntropy.push([x, y, performance.now() % 100]);
+    
+    // UI
+    const progress = Math.min(100, Math.floor((STATE.mouseEntropy.length / 200) * 100));
+    document.getElementById('mouse-bar').style.width = `${progress}%`;
+    document.getElementById('mouse-percent').innerText = progress;
+    
+    if(progress >= 100) {
+      window.removeEventListener('mousemove', collect);
+      window.removeEventListener('touchmove', collect);
+      dom.mouseOverlay.style.display = 'none';
+      STATE.isMouseDone = true;
+      document.getElementById('btn-mouse-start').innerText = "✅ 鼠标熵采集完成";
+      document.getElementById('btn-mouse-start').disabled = true;
+      checkEntropy();
     }
-  }
-  updateLengthBtns();
-
-  btn12.onclick = () => { wordCount = 12; updateLengthBtns(); };
-  btn24.onclick = () => { wordCount = 24; updateLengthBtns(); };
-
-  // --- Clear Function ---
-  btnClear.onclick = () => {
-    mnemonicDisplay.innerHTML = '<span style="color:var(--medium); font-size:0.9rem;">已清空。为了安全，建议刷新页面。</span>';
-    userEntropy = [];
-    // 简单的内存清理（覆盖引用）
-    if(window.gc) window.gc();
   };
+  
+  window.addEventListener('mousemove', collect);
+  window.addEventListener('touchmove', collect);
+};
 
-  // --- Wordlist Viewer ---
-  btnViewWordlist.onclick = () => {
-    const content = document.getElementById('wordlist-content');
-    content.innerHTML = WORDLIST.map((w, i) => `${i}:${w}`).join(' ');
-    document.getElementById('wordlist-modal').style.display = 'block';
-  };
-
-  // --- Core: Entropy Collection ---
-  btnGenerate.onclick = () => {
-    userEntropy = [];
-    entropyBar.style.width = '0%';
-    entropyPercent.textContent = '0%';
-    overlay.classList.add('active');
-    
-    // Add Listeners
-    window.addEventListener('mousemove', collectEntropy);
-    window.addEventListener('touchmove', collectEntropy);
-    window.addEventListener('click', collectEntropy);
-  };
-
-  async function collectEntropy(e) {
-    if (userEntropy.length >= ENTROPY_TARGET) return;
-
-    let x, y;
-    // 获取坐标
-    if (e.touches && e.touches.length > 0) {
-      x = e.touches[0].clientX;
-      y = e.touches[0].clientY;
-    } else {
-      x = e.clientX;
-      y = e.clientY;
-    }
-
-    // 采集高频时间噪声
-    const timeNoise = Math.floor(performance.now() * 1000) % 255;
-    
-    // 如果坐标有效，压入熵池
-    if (x !== undefined && y !== undefined) {
-        userEntropy.push(x, y, timeNoise);
-    }
-
-    // Update UI
-    const percent = Math.min(100, Math.ceil((userEntropy.length / ENTROPY_TARGET) * 100));
-    entropyBar.style.width = `${percent}%`;
-    entropyPercent.textContent = `${percent}%`;
-
-    // Finish
-    if (userEntropy.length >= ENTROPY_TARGET) {
-      window.removeEventListener('mousemove', collectEntropy);
-      window.removeEventListener('touchmove', collectEntropy);
-      window.removeEventListener('click', collectEntropy);
-      
-      overlay.classList.remove('active');
-      await generateMnemonic();
-    }
+function checkEntropy() {
+  const diceBits = calculateEntropy(STATE.diceEntropy);
+  const neededBits = STATE.wordCount === 12 ? 128 : 256;
+  
+  // 规则：要么有足够的骰子熵，要么鼠标采集完毕+一点骰子
+  const isSecure = (diceBits >= 128) || (STATE.isMouseDone && diceBits > 20);
+  
+  if(isSecure) {
+    dom.btnGenerate.disabled = false;
+    dom.btnGenerate.innerText = "🚀 生成助记词 (SHA-256混合)";
+    dom.btnGenerate.style.background = "var(--primary)";
+  } else {
+    dom.btnGenerate.disabled = true;
+    dom.btnGenerate.innerText = "🔒 熵值不足，无法生成";
+    dom.btnGenerate.style.background = "#333";
   }
+}
 
-  // --- Core: Secure Generation (Mixed Entropy) ---
-  async function generateMnemonic() {
-    mnemonicDisplay.innerHTML = '<div class="security-badge">正在进行双重哈希计算...</div>';
-    
-    // 1. 系统熵 (System Entropy)
-    const entropyLen = wordCount === 12 ? 16 : 32;
-    const systemEntropy = new Uint8Array(entropyLen + 32);
-    crypto.getRandomValues(systemEntropy);
-    
-    // 2. 用户熵 (User Entropy) -> Hash
-    const userEntropyBuffer = new Uint8Array(userEntropy);
-    const userHash = await crypto.subtle.digest("SHA-256", userEntropyBuffer);
-    
-    // 3. 混合 (Mix)
-    const combinedBuffer = new Uint8Array(systemEntropy.length + userHash.byteLength);
-    combinedBuffer.set(systemEntropy);
-    combinedBuffer.set(new Uint8Array(userHash), systemEntropy.length);
-    
-    // 4. 最终哈希 (Final Hash) -> Seed Entropy
-    const finalHashBuffer = await crypto.subtle.digest("SHA-256", combinedBuffer);
-    const finalEntropy = new Uint8Array(finalHashBuffer).slice(0, entropyLen);
-    
-    // 5. 转换为助记词
-    const mnemonic = await entropyToMnemonic(finalEntropy, WORDLIST);
-    
-    // 6. 显示 (渲染为 Pills)
-    renderMnemonic(mnemonic);
-    
-    // 7. 清理内存
-    systemEntropy.fill(0);
-    userEntropyBuffer.fill(0);
-    combinedBuffer.fill(0);
-  }
+// --- 3. 核心加密逻辑 (Verifiable JS) ---
 
-  // --- BIP39 Algorithms ---
-  function bytesToBits(bytes) {
-    const bits = [];
-    for (let b of bytes) {
-      for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
-    }
-    return bits;
-  }
-  function bitsToInt(bits) {
-    return bits.reduce((acc, b) => (acc << 1) | b, 0);
-  }
-  async function entropyToMnemonic(entropy, wordlist) {
-    const ENT = entropy.length * 8;
-    const checksumLen = ENT / 32;
-    const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", entropy));
-    const bits = bytesToBits(entropy).concat(bytesToBits(hash).slice(0, checksumLen));
-    const chunks = [];
-    for (let i = 0; i < bits.length / 11; i++) {
-      chunks.push(wordlist[bitsToInt(bits.slice(i * 11, (i + 1) * 11))]);
-    }
-    return chunks.join(" ");
-  }
+dom.btnGenerate.onclick = async () => {
+  // 1. 获取系统熵 (CSPRNG)
+  const sysEntropy = new Uint8Array(32);
+  window.crypto.getRandomValues(sysEntropy);
+  
+  // 2. 准备混合缓冲区
+  const encoder = new TextEncoder();
+  const diceData = encoder.encode(STATE.diceEntropy);
+  const mouseData = encoder.encode(JSON.stringify(STATE.mouseEntropy));
+  
+  // 3. 混合哈希计算: SHA-256( Dice + System + Mouse )
+  // 即使任何单一来源被攻破，只要有一个是随机的，结果就是安全的
+  const combinedBuffer = await window.crypto.subtle.digest(
+    'SHA-256', 
+    concatBuffers(diceData, sysEntropy, mouseData)
+  );
+  
+  // 4. BIP39 处理
+  const entropyLen = STATE.wordCount === 12 ? 16 : 32; // 128 or 256 bits
+  const finalEntropy = new Uint8Array(combinedBuffer).slice(0, entropyLen);
+  
+  const mnemonic = await entropyToMnemonic(finalEntropy);
+  renderMnemonic(mnemonic);
+  
+  // 5. 立即清理临时变量
+  sysEntropy.fill(0);
+};
 
-  function renderMnemonic(phrase) {
-    mnemonicDisplay.innerHTML = '';
-    const words = phrase.split(' ');
-    words.forEach((word, index) => {
-      const span = document.createElement('div');
-      span.className = 'word-pill';
-      span.innerHTML = `<span class="word-index">${index + 1}</span>${word}`;
-      mnemonicDisplay.appendChild(span);
-    });
-  }
+// 辅助函数: 合并 Buffer
+function concatBuffers(...buffers) {
+  const totalLen = buffers.reduce((acc, b) => acc + b.byteLength, 0);
+  const res = new Uint8Array(totalLen);
+  let offset = 0;
+  buffers.forEach(b => {
+    res.set(new Uint8Array(b), offset);
+    offset += b.byteLength;
+  });
+  return res;
+}
 
-})();
+// 辅助函数: 熵转助记词 (Standard BIP-39 Logic)
+async function entropyToMnemonic(entropy) {
+  // Checksum: SHA256(entropy) first N bits
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', entropy);
+  const hashArray = new Uint8Array(hashBuffer);
+  
+  // Convert to bits string
+  let bits = "";
+  for(let i=0; i<entropy.length; i++) {
+    bits += entropy[i].toString(2).padStart(8, '0');
+  }
+  
+  const checksumLen = entropy.length * 8 / 32;
+  let checksumBits = "";
+  // Get first byte of hash, sufficiently covers enough bits for 12/24 words
+  // (Simplified bit logic for readability, covers standard use)
+  for(let i=0; i<hashArray.length; i++) {
+      checksumBits += hashArray[i].toString(2).padStart(8, '0');
+  }
+  bits += checksumBits.substring(0, checksumLen);
+  
+  // Split into 11-bit chunks
+  const chunks = bits.match(/.{1,11}/g);
+  return chunks.map(binary => {
+    const index = parseInt(binary, 2);
+    return WORDLIST[index];
+  });
+}
+
+function renderMnemonic(words) {
+  const box = dom.mnemonicBox;
+  box.innerHTML = '';
+  box.classList.add('revealed');
+  
+  words.forEach((word, i) => {
+    const div = document.createElement('div');
+    div.className = 'word-pill';
+    div.innerHTML = `<span class="word-index">${i+1}</span>${word}`;
+    box.appendChild(div);
+  });
+}
+
+// 销毁
+dom.btnClear.onclick = () => {
+  STATE.diceEntropy = "";
+  STATE.mouseEntropy = [];
+  dom.diceInput.value = "";
+  dom.mnemonicBox.innerHTML = "";
+  dom.mnemonicBox.classList.remove('revealed');
+  checkEntropy();
+  alert("内存已重置。建议刷新页面或重启设备。");
+};
 </script>
 </body>
 </html>
