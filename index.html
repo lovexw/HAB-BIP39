@@ -109,7 +109,7 @@ h1 svg { stroke: var(--primary); }
   margin-top: 24px;
   min-height: 120px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* 稍微调宽格子宽度 */
   gap: 12px;
   padding: 20px;
   background: #fafafa;
@@ -124,26 +124,32 @@ h1 svg { stroke: var(--primary); }
   font-size: 0.9rem;
 }
 
+/* 单词样式修正：加粗、加大、加黑 */
 .word-pill {
   position: relative;
   background: #fff;
-  border: 1px solid #eee;
+  border: 1px solid #ccc; /* 边框稍微加深一点 */
   border-radius: 6px;
-  padding: 6px 4px;
+  padding: 8px 4px;       /* 增加一点内边距 */
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 0.95rem;
-  color: #333;
+  font-size: 1.05rem;     /* 字体加大 */
+  font-weight: 700;       /* 字体加粗 */
+  color: #000000;         /* 纯黑颜色 */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.03); /* 微弱阴影增加立体感 */
 }
+
 .word-index {
   position: absolute;
-  top: -6px;
+  top: -8px;
   left: -4px;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   background: #eee;
-  color: #666;
-  padding: 1px 4px;
-  border-radius: 3px;
+  color: #555;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: normal; /* 序号保持正常粗细 */
+  border: 1px solid #ddd;
 }
 
 /* 底部操作 */
@@ -183,9 +189,9 @@ footer {
 
   <div class="alert">
     <strong>🛡️ 安全说明：</strong><br>
-    本工具代码基于 OneKey/BIP39 标准库逻辑重构。<br>
-    完全离线运行，仅使用浏览器底层 CSPRNG 生成随机数。<br>
-    建议在<strong>断网/飞行模式</strong>下使用，生成后请手抄。
+    本工具基于 BIP39 标准与系统级随机数生成。<br>
+    代码极简，无任何外部依赖，完全离线运行。<br>
+    请在<strong>断网/飞行模式</strong>下生成，切勿截图，请用纸笔抄写。
   </div>
 
   <div class="tabs">
