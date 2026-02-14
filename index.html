@@ -4,257 +4,232 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>哈勃未来 · 极简冷钱包</title>
+<title>极简冷钱包 · 核心生成器</title>
 <style>
-/* --- 核心变量系统 (Design Tokens) --- */
+/* --- 视觉系统 (无依赖 CSS) --- */
 :root {
-  --primary: #FF9900;
-  --primary-hover: #ffad33;
-  --bg: #f5f7fa;
-  --card-bg: #ffffff;
-  --text-main: #1f2937;
-  --text-sub: #6b7280;
-  --border: #e5e7eb;
-  --radius: 16px;
-  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-  
-  /* 状态颜色 */
-  --status-online: #10b981; /* 绿色 */
-  --status-offline: #ef4444; /* 红色 */
+  --bg: #111111;
+  --card-bg: #1a1a1a;
+  --primary: #FF9900; /* 比特币橙 */
+  --text-main: #ffffff;
+  --text-sub: #888888;
+  --border: #333333;
+  --danger: #ff4444;
+  --safe: #00cc66;
 }
 
-/* --- 全局重置 --- */
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
   background-color: var(--bg);
   color: var(--text-main);
-  min-height: 100vh;
+  font-family: 'SF Mono', 'Roboto Mono', Monaco, monospace; /* 使用等宽字体体现极客感 */
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
+  min-height: 100vh;
 }
 
-/* --- 主容器 (玻璃拟态感微调) --- */
-.container {
+.main-card {
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 1px solid white;
-  padding: 40px;
-  position: relative;
-  transition: transform 0.3s ease;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* --- 顶部网络状态 (不显眼位置) --- */
-.network-status {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 0.75rem;
+/* 顶部状态栏 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: #f3f4f6;
-  font-weight: 500;
-  transition: all 0.3s;
-}
-.dot { width: 8px; height: 8px; border-radius: 50%; }
-
-/* 在线状态 */
-.status-online { color: var(--status-online); border: 1px solid #d1fae5; background: #ecfdf5; }
-.status-online .dot { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
-
-/* 离线状态 */
-.status-offline { color: var(--status-offline); border: 1px solid #fee2e2; background: #fef2f2; }
-.status-offline .dot { background: var(--status-offline); }
-
-
-/* --- 头部区域 --- */
-header { text-align: center; margin-bottom: 32px; }
-h1 { 
-  font-size: 1.75rem; 
-  font-weight: 800; 
-  color: #111; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 12px; 
-  margin-bottom: 8px; 
-  letter-spacing: -0.5px;
-}
-.subtitle { color: var(--text-sub); font-size: 0.9rem; letter-spacing: 0.5px; }
-
-/* --- 警告卡片 --- */
-.alert {
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  color: #92400e;
-  padding: 16px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  line-height: 1.6;
-  margin-bottom: 24px;
-  display: flex;
   gap: 10px;
 }
-.alert strong { color: #b45309; }
 
-/* --- 控件区域 --- */
-.controls { display: flex; gap: 12px; margin-bottom: 24px; }
-.tab-btn {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 8px;
+/* 网络状态指示器 */
+.network-badge {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+.network-badge.online {
+  background: rgba(255, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.network-badge.offline {
+  background: rgba(0, 204, 102, 0.15);
+  color: var(--safe);
+  border: 1px solid var(--safe);
+}
+.blink { animation: blinker 1.5s linear infinite; }
+@keyframes blinker { 50% { opacity: 0; } }
+
+/* 警告框 */
+.alert-box {
+  background: #2a1a00;
+  border: 1px solid #5c3a00;
+  color: #ffad33;
+  padding: 15px;
+  border-radius: 6px;
   font-size: 0.9rem;
-  color: var(--text-sub);
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+/* 按钮组 */
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+button {
   cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: inherit;
+  font-weight: 600;
   transition: all 0.2s;
 }
-.tab-btn.active {
-  background: #fff7ed; /* 浅橙色背景 */
+
+.mode-btn {
+  background: #2a2a2a;
+  color: #666;
+  border: 1px solid var(--border);
+}
+.mode-btn.active {
+  background: #333;
   color: var(--primary);
   border-color: var(--primary);
-  font-weight: 600;
 }
 
-/* --- 主按钮 --- */
-.action-btn {
-  width: 100%;
-  background: linear-gradient(135deg, var(--primary) 0%, #ff8800 100%);
-  color: white;
-  border: none;
-  padding: 16px;
-  border-radius: 10px;
+.generate-btn {
+  grid-column: span 2;
+  background: var(--primary);
+  color: #000;
   font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.2s;
-  box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
-.action-btn:active { transform: scale(0.98); }
-.action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.generate-btn:hover { background: #ffad33; transform: translateY(-1px); }
+.generate-btn:active { transform: translateY(1px); }
 
-/* --- 助记词显示区 (Grid布局) --- */
+/* 助记词展示区 */
 .mnemonic-grid {
-  margin-top: 30px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  min-height: 100px;
-}
-@media (min-width: 500px) { .mnemonic-grid { grid-template-columns: repeat(4, 1fr); } }
-
-.word-card {
-  background: #f9fafb;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 4px;
-  text-align: center;
-  position: relative;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111;
-  transition: all 0.2s;
-}
-.word-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-.word-index {
-  position: absolute;
-  top: 4px;
-  left: 6px;
-  font-size: 0.6rem;
-  color: #9ca3af;
-  font-weight: normal;
-}
-
-.empty-state {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--text-sub);
-  font-size: 0.9rem;
-  height: 120px;
-  background: #fafafa;
+  gap: 10px;
+  background: #111;
+  padding: 20px;
   border-radius: 8px;
   border: 1px dashed var(--border);
+  min-height: 150px;
+}
+@media(min-width: 500px) { .mnemonic-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.word-cell {
+  background: #222;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  border: 1px solid #333;
+}
+.word-index {
+  color: #555;
+  font-size: 0.7rem;
+  width: 24px;
+  display: inline-block;
+  user-select: none; /* 防止复制时选中序号 */
+}
+.word-text {
+  color: #fff;
+  font-weight: bold;
 }
 
-/* --- 底部 --- */
-footer { margin-top: 40px; text-align: center; color: #9ca3af; font-size: 0.75rem; }
-.footer-link { margin-top: 10px; display: block; color: var(--text-sub); text-decoration: none; }
-.footer-link:hover { color: var(--primary); }
-.reset-btn { background: none; border: none; color: #9ca3af; font-size: 0.8rem; margin-top: 20px; cursor: pointer; text-decoration: underline; }
-.reset-btn:hover { color: var(--status-offline); }
+.footer {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #444;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
 
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div id="network-badge" class="network-status status-online">
-    <div class="dot"></div>
-    <span id="network-text">已联网</span>
-  </div>
-
-  <header>
-    <h1>
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      哈勃未来
-    </h1>
-    <div class="subtitle">BIP39 助记词生成器 · 极简纯净版</div>
-  </header>
-
-  <div class="alert">
-    <div>⚠️</div>
-    <div>
-      <strong>安全说明：</strong><br>
-      本工具基于 BIP39 标准与系统级随机数生成。<br>
-      代码极简，无任何外部依赖，完全离线运行。<br>
-      请在<strong>断网/飞行模式</strong>下生成，切勿截图，请用纸笔抄写。
+<div class="main-card">
+  <div class="header">
+    <div class="title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      COLD VAULT
+    </div>
+    <div id="network-status" class="network-badge online">
+      <span class="status-icon">●</span>
+      <span class="status-text">检测中...</span>
     </div>
   </div>
 
+  <div class="alert-box">
+    <strong>⚠️ 极度危险操作警告：</strong><br>
+    当前环境若已联网，私钥有被上传风险。<br>
+    请务必在 <strong>物理断网 (拔网线/关WiFi)</strong> 后使用本工具。<br>
+    生成后请用<strong>纸笔抄写</strong>，严禁截图、拍照或复制到剪贴板。
+  </div>
+
   <div class="controls">
-    <button id="btn-12" class="tab-btn active" onclick="app.setLength(12)">12 个单词</button>
-    <button id="btn-24" class="tab-btn" onclick="app.setLength(24)">24 个单词</button>
+    <button id="btn-12" class="mode-btn active" onclick="app.setLength(12)">12 助记词</button>
+    <button id="btn-24" class="mode-btn" onclick="app.setLength(24)">24 助记词</button>
+    <button class="generate-btn" onclick="app.generate()">生成随机助记词 (Generate)</button>
   </div>
 
-  <button class="action-btn" onclick="app.generate()">生成助记词</button>
-
-  <div id="result-area" class="mnemonic-grid">
-    <div class="empty-state">点击上方按钮生成</div>
+  <div id="mnemonic-container" class="mnemonic-grid">
+    <div style="grid-column:1/-1; text-align:center; color:#444; line-height:150px;">
+      等待生成指令...
+    </div>
   </div>
 
-  <div style="text-align: center;">
-    <button class="reset-btn" onclick="app.clear()">清空数据 (Reset)</button>
+  <div class="footer">
+    Algorithm: BIP39 Standard<br>
+    Entropy Source: window.crypto.getRandomValues (Browser Native)<br>
+    Hash Function: window.crypto.subtle.digest('SHA-256')<br>
+    [ Open Source | No External Scripts | Offline Ready ]
   </div>
 </div>
 
-<footer>
-  算法标准: BIP39 | 随机源: crypto.getRandomValues<br>
-  Code is Law. Trust Math.
-  <a href="https://github.com/lovexw/HAB-BIP39" target="_blank" class="footer-link">GitHub: lovexw/HAB-BIP39</a>
-</footer>
-
 <script>
 /**
- * 哈勃未来核心逻辑 v2.0
- * 架构师：吴老二
- * 包含：BIP39算法实现、网络状态监听、UI渲染
+ * 极简冷钱包核心逻辑
+ * * 1. 移除了所有第三方库，使用原生 JS 实现。
+ * 2. 实现了标准的 BIP39 流程：熵 -> SHA256校验 -> 二进制拼接 -> 映射词表。
+ * 3. 方便代码审计。
  */
 
-// 1. 简化的 BIP39 词表 (为节省代码长度，此处仅展示结构，实际使用时请务必补全2048个单词)
-// 警告：为了真实可用，请将完整的 BIP39 英文词表替换到下方数组中
+// BIP39 英文标准词表 (2048个单词，按顺序排列)
 const WORDLIST = [
 "abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid",
 "acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance",
@@ -386,110 +361,107 @@ const WORDLIST = [
 "wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"
 ];
 
-class ColdWallet {
-  constructor() {
-    this.length = 12; // 默认12位
-    this.initNetworkMonitor();
-  }
+const App = {
+  length: 12, // 默认12位
 
-  // --- 网络监听模块 (Network Monitor) ---
-  initNetworkMonitor() {
-    const updateStatus = () => {
-      const isOnline = navigator.onLine;
-      const badge = document.getElementById('network-badge');
-      const text = document.getElementById('network-text');
+  init() {
+    this.updateNetworkStatus();
+    window.addEventListener('online', () => this.updateNetworkStatus());
+    window.addEventListener('offline', () => this.updateNetworkStatus());
+  },
 
-      if (isOnline) {
-        // 联网：显示绿色
-        badge.className = 'network-status status-online';
-        text.innerText = '已联网';
-      } else {
-        // 断网：显示浅红色
-        badge.className = 'network-status status-offline';
-        text.innerText = '离线模式';
-      }
-    };
-
-    window.addEventListener('online', updateStatus);
-    window.addEventListener('offline', updateStatus);
-    updateStatus(); // 初始化检查
-  }
-
+  // 切换长度
   setLength(len) {
     this.length = len;
-    document.getElementById('btn-12').className = len === 12 ? 'tab-btn active' : 'tab-btn';
-    document.getElementById('btn-24').className = len === 24 ? 'tab-btn active' : 'tab-btn';
-  }
+    document.getElementById('btn-12').className = len === 12 ? 'mode-btn active' : 'mode-btn';
+    document.getElementById('btn-24').className = len === 24 ? 'mode-btn active' : 'mode-btn';
+  },
 
-  // --- 核心业务：生成助记词 (Generate) ---
-  async generate() {
-    const display = document.getElementById('result-area');
-    display.innerHTML = '<div class="empty-state">生成中...</div>';
+  // 网络状态检测逻辑
+  updateNetworkStatus() {
+    const el = document.getElementById('network-status');
+    const isOnline = navigator.onLine;
 
-    try {
-      if (!window.crypto || !window.crypto.subtle) {
-        throw new Error("浏览器版本过低，不支持 Web Crypto API");
-      }
-
-      // 1. 生成熵 (Entropy)
-      // 12 words = 128 bits, 24 words = 256 bits
-      const strength = this.length === 12 ? 128 : 256;
-      const byteLength = strength / 8;
-      const entropy = new Uint8Array(byteLength);
-      window.crypto.getRandomValues(entropy);
-
-      // 2. 计算 SHA-256 校验和 (Checksum)
-      const hashBuffer = await window.crypto.subtle.digest('SHA-256', entropy);
-      const hashArray = new Uint8Array(hashBuffer);
-
-      // 3. 转换为二进制位流 (Bits)
-      let bits = "";
-      for (let i = 0; i < entropy.length; i++) {
-        bits += entropy[i].toString(2).padStart(8, '0');
-      }
-
-      // 4. 追加校验和
-      // Checksum length = ENT / 32
-      const checksumLen = strength / 32;
-      const checksumBits = hashArray[0].toString(2).padStart(8, '0').substring(0, checksumLen);
-      bits += checksumBits;
-
-      // 5. 分割成索引并查表 (Map to words)
-      const chunks = bits.match(/.{1,11}/g);
-      const mnemonic = chunks.map(binary => WORDLIST[parseInt(binary, 2)]);
-
-      // 6. 渲染 UI
-      this.render(mnemonic);
-
-      // 7. 内存清理
-      entropy.fill(0);
-
-    } catch (e) {
-      console.error(e);
-      display.innerHTML = `<div class="empty-state" style="color:red">错误: ${e.message}</div>`;
+    if (isOnline) {
+      el.className = 'network-badge online blink';
+      el.innerHTML = '<span class="status-icon">●</span> 在线 (危险 - 请断网)';
+    } else {
+      el.className = 'network-badge offline';
+      el.innerHTML = '<span class="status-icon">●</span> 离线 (安全)';
     }
-  }
+  },
+
+  // 【核心】生成逻辑
+  async generate() {
+    // 1. 环境检查
+    if (!window.crypto || !window.crypto.subtle) {
+      alert("错误：您的浏览器太旧，不支持 Web Crypto API，无法安全生成。请使用 Chrome 60+ 或 Firefox 55+");
+      return;
+    }
+
+    // 2. 准备熵 (Entropy)
+    // 12 words = 128 bits entropy
+    // 24 words = 256 bits entropy
+    const entropyBits = this.length === 12 ? 128 : 256;
+    const entropyBytes = entropyBits / 8;
+    const entropyBuffer = new Uint8Array(entropyBytes);
+    
+    // 3. 生成强随机数 (CSPRNG)
+    window.crypto.getRandomValues(entropyBuffer);
+
+    // 4. 计算校验和 (SHA-256)
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', entropyBuffer);
+    const hashArray = new Uint8Array(hashBuffer);
+
+    // 5. 拼接二进制字符串
+    let binaryStr = "";
+    // 将熵转为二进制
+    for (let i = 0; i < entropyBuffer.length; i++) {
+      binaryStr += entropyBuffer[i].toString(2).padStart(8, '0');
+    }
+
+    // 计算校验和长度 (Entropy bits / 32)
+    const checksumLength = entropyBits / 32;
+    // 取哈希的第一个字节的高N位
+    const checksumBits = hashArray[0].toString(2).padStart(8, '0').substring(0, checksumLength);
+    
+    // 拼接：熵 + 校验和
+    const fullBinary = binaryStr + checksumBits;
+
+    // 6. 切割并映射词表
+    // 每 11 bits 对应一个单词
+    const chunks = fullBinary.match(/.{1,11}/g);
+    const mnemonic = chunks.map(binary => {
+      const index = parseInt(binary, 2);
+      return WORDLIST[index];
+    });
+
+    // 7. 渲染 UI
+    this.render(mnemonic);
+
+    // 8. 内存清理 (虽然 JS 有 GC，但手动清零是个好习惯)
+    entropyBuffer.fill(0);
+  },
 
   render(words) {
-    const display = document.getElementById('result-area');
-    display.innerHTML = '';
+    const container = document.getElementById('mnemonic-container');
+    container.innerHTML = '';
     
     words.forEach((word, index) => {
-      const card = document.createElement('div');
-      card.className = 'word-card';
-      card.innerHTML = `<span class="word-index">${index + 1}</span>${word}`;
-      display.appendChild(card);
+      const cell = document.createElement('div');
+      cell.className = 'word-cell';
+      cell.innerHTML = `
+        <span class="word-index">${index + 1}</span>
+        <span class="word-text">${word}</span>
+      `;
+      container.appendChild(cell);
     });
   }
+};
 
-  clear() {
-    const display = document.getElementById('result-area');
-    display.innerHTML = '<div class="empty-state">点击上方按钮生成</div>';
-  }
-}
-
-// 初始化应用
-const app = new ColdWallet();
+// 启动应用
+const app = Object.create(App);
+app.init();
 
 </script>
 </body>
