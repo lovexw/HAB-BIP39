@@ -6,222 +6,255 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>哈勃未来 · 极简冷钱包</title>
 <style>
-/* --- 哈勃未来 UI 风格 (Hubble Future Style) --- */
+/* --- 核心变量系统 (Design Tokens) --- */
 :root {
   --primary: #FF9900;
   --primary-hover: #ffad33;
-  --bg: #f9f9f9;
+  --bg: #f5f7fa;
   --card-bg: #ffffff;
-  --text: #333333;
-  --text-sub: #666666;
-  --border: #e0e0e0;
-  --radius: 12px;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  --text-main: #1f2937;
+  --text-sub: #6b7280;
+  --border: #e5e7eb;
+  --radius: 16px;
+  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  
+  /* 状态颜色 */
+  --status-online: #10b981; /* 绿色 */
+  --status-offline: #ef4444; /* 红色 */
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
+/* --- 全局重置 --- */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg);
-  color: var(--text);
+  color: var(--text-main);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  justify-content: center;
   padding: 20px;
 }
 
+/* --- 主容器 (玻璃拟态感微调) --- */
 .container {
   width: 100%;
-  max-width: 640px;
+  max-width: 600px;
   background: var(--card-bg);
   border-radius: var(--radius);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: 1px solid var(--border);
-  padding: 32px;
-  margin-top: 40px;
+  box-shadow: var(--shadow);
+  border: 1px solid white;
+  padding: 40px;
+  position: relative;
+  transition: transform 0.3s ease;
 }
 
-header { text-align: center; margin-bottom: 30px; }
-h1 { color: #000; font-size: 1.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-h1 svg { stroke: var(--primary); }
-.subtitle { color: var(--text-sub); font-size: 0.95rem; }
+/* --- 顶部网络状态 (不显眼位置) --- */
+.network-status {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; }
 
-/* 警告区域 */
+/* 在线状态 */
+.status-online { color: var(--status-online); border: 1px solid #d1fae5; background: #ecfdf5; }
+.status-online .dot { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
+
+/* 离线状态 */
+.status-offline { color: var(--status-offline); border: 1px solid #fee2e2; background: #fef2f2; }
+.status-offline .dot { background: var(--status-offline); }
+
+
+/* --- 头部区域 --- */
+header { text-align: center; margin-bottom: 32px; }
+h1 { 
+  font-size: 1.75rem; 
+  font-weight: 800; 
+  color: #111; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 12px; 
+  margin-bottom: 8px; 
+  letter-spacing: -0.5px;
+}
+.subtitle { color: var(--text-sub); font-size: 0.9rem; letter-spacing: 0.5px; }
+
+/* --- 警告卡片 --- */
 .alert {
-  background: #fff8e6;
-  border: 1px solid #ffe0b2;
-  border-left: 4px solid var(--primary);
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
   padding: 16px;
   border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.6;
   margin-bottom: 24px;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: #5c3a00;
-}
-
-/* 选项卡 */
-.tabs {
   display: flex;
-  background: #f0f0f0;
-  border-radius: 8px;
-  padding: 4px;
-  margin-bottom: 24px;
+  gap: 10px;
 }
+.alert strong { color: #b45309; }
+
+/* --- 控件区域 --- */
+.controls { display: flex; gap: 12px; margin-bottom: 24px; }
 .tab-btn {
   flex: 1;
-  border: none;
-  background: transparent;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
   font-size: 0.9rem;
-  font-weight: 600;
   color: var(--text-sub);
   cursor: pointer;
   transition: all 0.2s;
 }
 .tab-btn.active {
-  background: var(--card-bg);
+  background: #fff7ed; /* 浅橙色背景 */
   color: var(--primary);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-color: var(--primary);
+  font-weight: 600;
 }
 
-/* 生成按钮 */
+/* --- 主按钮 --- */
 .action-btn {
   width: 100%;
-  background: var(--primary);
-  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, #ff8800 100%);
+  color: white;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
+  padding: 16px;
+  border-radius: 10px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
-  box-shadow: 0 4px 10px rgba(255, 153, 0, 0.2);
+  transition: transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
 }
-.action-btn:hover { background: var(--primary-hover); }
-.action-btn:active { transform: translateY(1px); }
+.action-btn:active { transform: scale(0.98); }
+.action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* 助记词显示区 */
-.mnemonic-box {
-  margin-top: 24px;
-  min-height: 120px;
+/* --- 助记词显示区 (Grid布局) --- */
+.mnemonic-grid {
+  margin-top: 30px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* 稍微调宽格子宽度 */
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  padding: 20px;
-  background: #fafafa;
+  min-height: 100px;
+}
+@media (min-width: 500px) { .mnemonic-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.word-card {
+  background: #f9fafb;
   border: 1px solid var(--border);
   border-radius: 8px;
-}
-.mnemonic-box.empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-sub);
-  font-size: 0.9rem;
-}
-
-/* 单词样式修正：加粗、加大、加黑 */
-.word-pill {
-  position: relative;
-  background: #fff;
-  border: 1px solid #ccc; /* 边框稍微加深一点 */
-  border-radius: 6px;
-  padding: 8px 4px;       /* 增加一点内边距 */
+  padding: 10px 4px;
   text-align: center;
-  font-family: var(--font-mono);
-  font-size: 1.05rem;     /* 字体加大 */
-  font-weight: 700;       /* 字体加粗 */
-  color: #000000;         /* 纯黑颜色 */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.03); /* 微弱阴影增加立体感 */
+  position: relative;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+  transition: all 0.2s;
 }
-
+.word-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
 .word-index {
   position: absolute;
-  top: -8px;
-  left: -4px;
-  font-size: 0.65rem;
-  background: #eee;
-  color: #555;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-weight: normal; /* 序号保持正常粗细 */
-  border: 1px solid #ddd;
+  top: 4px;
+  left: 6px;
+  font-size: 0.6rem;
+  color: #9ca3af;
+  font-weight: normal;
 }
 
-/* 底部操作 */
-.footer-actions {
+.empty-state {
+  grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  margin-top: 20px;
-}
-.text-btn {
-  background: none;
-  border: none;
+  align-items: center;
   color: var(--text-sub);
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-decoration: underline;
+  font-size: 0.9rem;
+  height: 120px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px dashed var(--border);
 }
-.text-btn:hover { color: var(--danger, #d32f2f); }
 
-footer {
-  margin-top: 40px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #999;
-}
+/* --- 底部 --- */
+footer { margin-top: 40px; text-align: center; color: #9ca3af; font-size: 0.75rem; }
+.footer-link { margin-top: 10px; display: block; color: var(--text-sub); text-decoration: none; }
+.footer-link:hover { color: var(--primary); }
+.reset-btn { background: none; border: none; color: #9ca3af; font-size: 0.8rem; margin-top: 20px; cursor: pointer; text-decoration: underline; }
+.reset-btn:hover { color: var(--status-offline); }
+
 </style>
 </head>
 <body>
 
 <div class="container">
+  <div id="network-badge" class="network-status status-online">
+    <div class="dot"></div>
+    <span id="network-text">已联网</span>
+  </div>
+
   <header>
     <h1>
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       哈勃未来
     </h1>
     <div class="subtitle">BIP39 助记词生成器 · 极简纯净版</div>
   </header>
 
   <div class="alert">
-    <strong>🛡️ 安全说明：</strong><br>
-    本工具基于 BIP39 标准与系统级随机数生成。<br>
-    代码极简，无任何外部依赖，完全离线运行。<br>
-    请在<strong>断网/飞行模式</strong>下生成，切勿截图，请用纸笔抄写。
+    <div>⚠️</div>
+    <div>
+      <strong>安全说明：</strong><br>
+      本工具基于 BIP39 标准与系统级随机数生成。<br>
+      代码极简，无任何外部依赖，完全离线运行。<br>
+      请在<strong>断网/飞行模式</strong>下生成，切勿截图，请用纸笔抄写。
+    </div>
   </div>
 
-  <div class="tabs">
-    <button id="tab-12" class="tab-btn active" onclick="setLength(12)">12 个单词</button>
-    <button id="tab-24" class="tab-btn" onclick="setLength(24)">24 个单词</button>
+  <div class="controls">
+    <button id="btn-12" class="tab-btn active" onclick="app.setLength(12)">12 个单词</button>
+    <button id="btn-24" class="tab-btn" onclick="app.setLength(24)">24 个单词</button>
   </div>
 
-  <button class="action-btn" onclick="generate()">生成助记词</button>
+  <button class="action-btn" onclick="app.generate()">生成助记词</button>
 
-  <div id="mnemonic-display" class="mnemonic-box empty">
-    点击上方按钮生成
+  <div id="result-area" class="mnemonic-grid">
+    <div class="empty-state">点击上方按钮生成</div>
   </div>
 
-  <div class="footer-actions">
-    <button class="text-btn" onclick="clearData()">清空数据 (Reset)</button>
+  <div style="text-align: center;">
+    <button class="reset-btn" onclick="app.clear()">清空数据 (Reset)</button>
   </div>
 </div>
 
 <footer>
   算法标准: BIP39 | 随机源: crypto.getRandomValues<br>
   Code is Law. Trust Math.
+  <a href="https://github.com/lovexw/HAB-BIP39" target="_blank" class="footer-link">GitHub: lovexw/HAB-BIP39</a>
 </footer>
 
 <script>
-// --- 核心逻辑 (纯净无依赖) ---
+/**
+ * 哈勃未来核心逻辑 v2.0
+ * 架构师：吴老二
+ * 包含：BIP39算法实现、网络状态监听、UI渲染
+ */
 
-// 状态管理
-let wordCount = 12;
-
-// 1. BIP39 英文词表 (2048词，标准顺序)
+// 1. 简化的 BIP39 词表 (为节省代码长度，此处仅展示结构，实际使用时请务必补全2048个单词)
+// 警告：为了真实可用，请将完整的 BIP39 英文词表替换到下方数组中
 const WORDLIST = [
 "abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid",
 "acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance",
@@ -353,86 +386,110 @@ const WORDLIST = [
 "wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"
 ];
 
-// --- 功能函数 ---
+class ColdWallet {
+  constructor() {
+    this.length = 12; // 默认12位
+    this.initNetworkMonitor();
+  }
 
-function setLength(n) {
-  wordCount = n;
-  document.getElementById('tab-12').className = n === 12 ? 'tab-btn active' : 'tab-btn';
-  document.getElementById('tab-24').className = n === 24 ? 'tab-btn active' : 'tab-btn';
-}
+  // --- 网络监听模块 (Network Monitor) ---
+  initNetworkMonitor() {
+    const updateStatus = () => {
+      const isOnline = navigator.onLine;
+      const badge = document.getElementById('network-badge');
+      const text = document.getElementById('network-text');
 
-function clearData() {
-  document.getElementById('mnemonic-display').innerHTML = '点击上方按钮生成';
-  document.getElementById('mnemonic-display').className = 'mnemonic-box empty';
-  // 触发 GC
-  if (window.gc) window.gc();
-}
+      if (isOnline) {
+        // 联网：显示绿色
+        badge.className = 'network-status status-online';
+        text.innerText = '已联网';
+      } else {
+        // 断网：显示浅红色
+        badge.className = 'network-status status-offline';
+        text.innerText = '离线模式';
+      }
+    };
 
-// 核心生成逻辑
-async function generate() {
-  const display = document.getElementById('mnemonic-display');
-  display.innerHTML = '<span style="color:#999">生成中...</span>';
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    updateStatus(); // 初始化检查
+  }
 
-  try {
-    // 1. 获取系统强随机熵 (16 bytes for 12 words, 32 bytes for 24 words)
-    // 12 words = 128 bits entropy
-    // 24 words = 256 bits entropy
-    const entropyBytes = wordCount === 12 ? 16 : 32;
-    const entropy = new Uint8Array(entropyBytes);
-    window.crypto.getRandomValues(entropy);
+  setLength(len) {
+    this.length = len;
+    document.getElementById('btn-12').className = len === 12 ? 'tab-btn active' : 'tab-btn';
+    document.getElementById('btn-24').className = len === 24 ? 'tab-btn active' : 'tab-btn';
+  }
 
-    // 2. 计算校验和 (SHA-256)
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', entropy);
-    const hashArray = new Uint8Array(hashBuffer);
+  // --- 核心业务：生成助记词 (Generate) ---
+  async generate() {
+    const display = document.getElementById('result-area');
+    display.innerHTML = '<div class="empty-state">生成中...</div>';
 
-    // 3. 转换为二进制字符串
-    let bits = "";
-    for (let i = 0; i < entropy.length; i++) {
-      bits += entropy[i].toString(2).padStart(8, '0');
+    try {
+      if (!window.crypto || !window.crypto.subtle) {
+        throw new Error("浏览器版本过低，不支持 Web Crypto API");
+      }
+
+      // 1. 生成熵 (Entropy)
+      // 12 words = 128 bits, 24 words = 256 bits
+      const strength = this.length === 12 ? 128 : 256;
+      const byteLength = strength / 8;
+      const entropy = new Uint8Array(byteLength);
+      window.crypto.getRandomValues(entropy);
+
+      // 2. 计算 SHA-256 校验和 (Checksum)
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', entropy);
+      const hashArray = new Uint8Array(hashBuffer);
+
+      // 3. 转换为二进制位流 (Bits)
+      let bits = "";
+      for (let i = 0; i < entropy.length; i++) {
+        bits += entropy[i].toString(2).padStart(8, '0');
+      }
+
+      // 4. 追加校验和
+      // Checksum length = ENT / 32
+      const checksumLen = strength / 32;
+      const checksumBits = hashArray[0].toString(2).padStart(8, '0').substring(0, checksumLen);
+      bits += checksumBits;
+
+      // 5. 分割成索引并查表 (Map to words)
+      const chunks = bits.match(/.{1,11}/g);
+      const mnemonic = chunks.map(binary => WORDLIST[parseInt(binary, 2)]);
+
+      // 6. 渲染 UI
+      this.render(mnemonic);
+
+      // 7. 内存清理
+      entropy.fill(0);
+
+    } catch (e) {
+      console.error(e);
+      display.innerHTML = `<div class="empty-state" style="color:red">错误: ${e.message}</div>`;
     }
+  }
 
-    // 4. 追加校验和
-    // Checksum length = ENT / 32
-    // 128 bits -> 4 bits checksum
-    // 256 bits -> 8 bits checksum
-    const checksumLen = (entropy.length * 8) / 32;
+  render(words) {
+    const display = document.getElementById('result-area');
+    display.innerHTML = '';
     
-    // 取哈希首字节的前N位
-    const checksumBits = hashArray[0].toString(2).padStart(8, '0').substring(0, checksumLen);
-    bits += checksumBits;
+    words.forEach((word, index) => {
+      const card = document.createElement('div');
+      card.className = 'word-card';
+      card.innerHTML = `<span class="word-index">${index + 1}</span>${word}`;
+      display.appendChild(card);
+    });
+  }
 
-    // 5. 分割并查表
-    const chunks = bits.match(/.{1,11}/g);
-    const mnemonic = chunks.map(binary => WORDLIST[parseInt(binary, 2)]);
-
-    // 6. 渲染
-    render(mnemonic);
-    
-    // 7. 清理内存
-    entropy.fill(0);
-  } catch (e) {
-    display.innerHTML = `<span style="color:red">错误: ${e.message}</span>`;
+  clear() {
+    const display = document.getElementById('result-area');
+    display.innerHTML = '<div class="empty-state">点击上方按钮生成</div>';
   }
 }
 
-function render(words) {
-  const display = document.getElementById('mnemonic-display');
-  display.innerHTML = '';
-  display.className = 'mnemonic-box';
-  
-  words.forEach((word, index) => {
-    const pill = document.createElement('div');
-    pill.className = 'word-pill';
-    pill.innerHTML = `<span class="word-index">${index + 1}</span>${word}`;
-    display.appendChild(pill);
-  });
-}
-
-// 检查 API 支持
-if (!window.crypto || !window.crypto.subtle) {
-  alert("错误：当前浏览器不支持 Web Crypto API，无法安全生成。请使用最新版 Chrome。");
-  document.querySelector('.action-btn').disabled = true;
-}
+// 初始化应用
+const app = new ColdWallet();
 
 </script>
 </body>
