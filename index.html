@@ -2,467 +2,1043 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>极简冷钱包 · 核心生成器</title>
+<title>Entropy Vault · 离线助记词生成器</title>
 <style>
-/* --- 视觉系统 (无依赖 CSS) --- */
+/* ============================================================
+   Entropy Vault — BIP39 Mnemonic Generator
+   Zero-dependency, single-file, air-gap ready.
+   ============================================================ */
+
 :root {
-  --bg: #111111;
-  --card-bg: #1a1a1a;
-  --primary: #FF9900; /* 比特币橙 */
-  --text-main: #ffffff;
-  --text-sub: #888888;
-  --border: #333333;
-  --danger: #ff4444;
-  --safe: #00cc66;
+  --surface: #faf9f7;
+  --surface-alt: #f3f1ed;
+  --card: #ffffff;
+  --card-hover: #fefdfb;
+  --border: #e8e4dc;
+  --border-strong: #d5cfc4;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6560;
+  --text-tertiary: #a09890;
+  --accent: #c4963a;
+  --accent-light: #f0d99e;
+  --accent-glow: rgba(196, 150, 58, 0.12);
+  --danger: #d9483b;
+  --danger-bg: #fef2f0;
+  --safe: #2d8a56;
+  --safe-bg: #eef7f1;
+  --info: #3b6fb6;
+  --info-bg: #eef4fb;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  margin: 0;
-  padding: 20px;
-  background-color: var(--bg);
-  color: var(--text-main);
-  font-family: 'SF Mono', 'Roboto Mono', Monaco, monospace; /* 使用等宽字体体现极客感 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--surface);
+  color: var(--text-primary);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  padding: 32px 16px 64px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.main-card {
+/* Subtle background texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196,150,58,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(59,111,182,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Container ── */
+.container {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 700px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-/* 顶部状态栏 */
-.header {
+  max-width: 780px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 20px;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.title {
-  font-size: 1.2rem;
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 28px 0 8px;
+}
+
+.logo-mark {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, var(--accent), #d4a84b, #b8862d);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px var(--accent-glow);
+}
+.logo-mark svg { width: 28px; height: 28px; color: #fff; }
+
+.hero h1 {
+  font-size: 2rem;
   font-weight: 700;
-  color: var(--primary);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.hero .subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* ── Network Status Badge ── */
+.status-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.4s var(--ease-out);
+}
+.status-chip.online {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid rgba(217,72,59,0.2);
+  animation: pulse-warn 2s ease-in-out infinite;
+}
+.status-chip.offline {
+  background: var(--safe-bg);
+  color: var(--safe);
+  border: 1px solid rgba(45,138,86,0.2);
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor;
+}
+@keyframes pulse-warn {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Card Base ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.3s var(--ease-out);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+.card-header {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-/* 网络状态指示器 */
-.network-badge {
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s;
-}
-.network-badge.online {
-  background: rgba(255, 68, 68, 0.15);
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-.network-badge.offline {
-  background: rgba(0, 204, 102, 0.15);
-  color: var(--safe);
-  border: 1px solid var(--safe);
-}
-.blink { animation: blinker 1.5s linear infinite; }
-@keyframes blinker { 50% { opacity: 0; } }
-
-/* 警告框 */
-.alert-box {
-  background: #2a1a00;
-  border: 1px solid #5c3a00;
-  color: #ffad33;
-  padding: 15px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  margin-bottom: 25px;
-  line-height: 1.6;
-}
-
-/* 按钮组 */
-.controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
   margin-bottom: 20px;
 }
+.card-header .icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.card-header h3 {
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
 
-button {
-  cursor: pointer;
-  border: none;
-  border-radius: 6px;
-  padding: 12px;
-  font-family: inherit;
-  font-weight: 600;
-  transition: all 0.2s;
+/* ── Warning Card ── */
+.warning-card {
+  background: linear-gradient(135deg, #fff8f6, #fef5f3);
+  border-color: rgba(217,72,59,0.15);
+}
+.warning-card .icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.warning-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.warning-list li {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  padding-left: 20px;
+  position: relative;
+}
+.warning-list li::before {
+  content: '•';
+  position: absolute; left: 4px;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* ── Control Card ── */
+.control-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .mode-btn {
-  background: #2a2a2a;
-  color: #666;
-  border: 1px solid var(--border);
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-alt);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
+.mode-btn .bits { font-size: 0.7rem; font-weight: 400; color: var(--text-tertiary); }
+.mode-btn:hover { border-color: var(--border-strong); background: var(--card); }
 .mode-btn.active {
-  background: #333;
-  color: var(--primary);
-  border-color: var(--primary);
+  border-color: var(--accent);
+  background: #fefbf4;
+  color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
+.mode-btn.active .bits { color: var(--accent); opacity: 0.7; }
 
 .generate-btn {
   grid-column: span 2;
-  background: var(--primary);
-  color: #000;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: linear-gradient(135deg, var(--accent), #d4a84b);
+  color: #fff;
+  font-family: inherit;
   font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
-.generate-btn:hover { background: #ffad33; transform: translateY(-1px); }
-.generate-btn:active { transform: translateY(1px); }
-
-/* 助记词展示区 */
-.mnemonic-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  background: #111;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px dashed var(--border);
-  min-height: 150px;
+.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px var(--accent-glow);
 }
-@media(min-width: 500px) { .mnemonic-grid { grid-template-columns: repeat(4, 1fr); } }
+.generate-btn:active { transform: translateY(0); }
+.generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 
-.word-cell {
-  background: #222;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 0.95rem;
+/* ── Entropy Overlay ── */
+.entropy-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
   display: flex;
   align-items: center;
-  border: 1px solid #333;
+  justify-content: center;
+  animation: fadeIn 0.3s var(--ease-out);
 }
-.word-index {
-  color: #555;
-  font-size: 0.7rem;
-  width: 24px;
-  display: inline-block;
-  user-select: none; /* 防止复制时选中序号 */
-}
-.word-text {
-  color: #fff;
-  font-weight: bold;
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.footer {
-  margin-top: 30px;
+.entropy-panel {
+  background: var(--card);
+  border-radius: var(--radius-xl);
+  padding: 40px 36px;
+  max-width: 420px;
+  width: 90%;
   text-align: center;
-  font-size: 0.75rem;
-  color: #444;
-  border-top: 1px solid var(--border);
-  padding-top: 20px;
+  box-shadow: var(--shadow-lg);
+  animation: scaleIn 0.4s var(--ease-spring);
+}
+@keyframes scaleIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.entropy-panel h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.entropy-panel .hint {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
 }
 
+.entropy-bar-track {
+  height: 10px;
+  background: var(--surface-alt);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+.entropy-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #d4a84b, #e8c867);
+  border-radius: 100px;
+  transition: width 0.15s linear;
+  width: 0%;
+}
+.entropy-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+.entropy-stats span { font-weight: 600; color: var(--text-secondary); }
+
+.entropy-cancel {
+  margin-top: 20px;
+  padding: 10px 24px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.entropy-cancel:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Result Card ── */
+.mnemonic-display {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--surface-alt);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--border-strong);
+  min-height: 100px;
+}
+@media (min-width: 520px) {
+  .mnemonic-display { grid-template-columns: repeat(4, 1fr); }
+}
+
+.word-chip {
+  background: var(--card);
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s var(--ease-out);
+}
+.word-chip:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.word-num {
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  min-width: 18px;
+  user-select: none;
+  font-weight: 500;
+}
+.word-val {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.placeholder-text {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+}
+
+.result-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  justify-content: center;
+}
+.btn-secondary {
+  padding: 10px 20px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.btn-secondary:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* ── Knowledge Cards ── */
+.knowledge-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 600px) {
+  .knowledge-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.knowledge-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s var(--ease-out);
+}
+.knowledge-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.knowledge-card .kc-icon {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+}
+.kc-icon.amber { background: #fef9ef; color: var(--accent); }
+.kc-icon.blue  { background: var(--info-bg); color: var(--info); }
+.kc-icon.green { background: var(--safe-bg); color: var(--safe); }
+.kc-icon.red   { background: var(--danger-bg); color: var(--danger); }
+
+.knowledge-card h4 {
+  font-size: 0.9rem;
+  font-weight: 650;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.knowledge-card p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+.knowledge-card .kc-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 10px;
+  letter-spacing: 0.02em;
+}
+.kc-tag.amber { background: #fef9ef; color: var(--accent); }
+.kc-tag.blue  { background: var(--info-bg); color: var(--info); }
+.kc-tag.green { background: var(--safe-bg); color: var(--safe); }
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 20px 0 0;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.footer-meta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+/* ── Animations ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slideUp 0.5s var(--ease-out) both; }
+.slide-up-d1 { animation-delay: 0.05s; }
+.slide-up-d2 { animation-delay: 0.1s; }
+.slide-up-d3 { animation-delay: 0.15s; }
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  body { padding: 16px 10px 40px; }
+  .hero h1 { font-size: 1.5rem; }
+  .card { padding: 20px; }
+  .mnemonic-display { gap: 6px; padding: 14px; }
+  .word-chip { padding: 8px 6px; font-size: 0.78rem; }
+}
 </style>
 </head>
 <body>
 
-<div class="main-card">
-  <div class="header">
-    <div class="title">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      COLD VAULT
+<div class="container">
+
+  <!-- ═══ Hero ═══ -->
+  <div class="hero slide-up">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7v5c0 5.5 4 9.5 10 12 6-2.5 10-6.5 10-12V7L12 2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
     </div>
-    <div id="network-status" class="network-badge online">
-      <span class="status-icon">●</span>
-      <span class="status-text">检测中...</span>
-    </div>
+    <h1>Entropy Vault</h1>
+    <p class="subtitle">离线 BIP39 助记词生成器 · 双重熵源 · 零网络依赖</p>
   </div>
 
-  <div class="alert-box">
-    <strong>⚠️ 极度危险操作警告：</strong><br>
-    当前环境若已联网，私钥有被上传风险。<br>
-    请务必在 <strong>物理断网 (拔网线/关WiFi)</strong> 后使用本工具。<br>
-    生成后请用<strong>纸笔抄写</strong>，严禁截图、拍照或复制到剪贴板。
-  </div>
-
-  <div class="controls">
-    <button id="btn-12" class="mode-btn active" onclick="app.setLength(12)">12 助记词</button>
-    <button id="btn-24" class="mode-btn" onclick="app.setLength(24)">24 助记词</button>
-    <button class="generate-btn" onclick="app.generate()">生成随机助记词 (Generate)</button>
-  </div>
-
-  <div id="mnemonic-container" class="mnemonic-grid">
-    <div style="grid-column:1/-1; text-align:center; color:#444; line-height:150px;">
-      等待生成指令...
+  <!-- ═══ Status Bar ═══ -->
+  <div class="status-bar slide-up slide-up-d1">
+    <div id="net-chip" class="status-chip online">
+      <span class="status-dot"></span>
+      <span id="net-text">检测中…</span>
     </div>
   </div>
 
+  <!-- ═══ Warning ═══ -->
+  <div class="card warning-card slide-up slide-up-d1">
+    <div class="card-header">
+      <div class="icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h3>安全操作须知</h3>
+    </div>
+    <ul class="warning-list">
+      <li>在 <strong>物理断网</strong> 环境使用（飞行模式 + 关闭 WiFi）</li>
+      <li>建议使用恢复出厂设置后的旧手机作为专用设备</li>
+      <li>生成后请用 <strong>纸笔手抄</strong>，禁止截图、拍照或复制</li>
+      <li>使用完毕后关闭页面，删除文件，<strong>不留下痕迹</strong></li>
+    </ul>
+  </div>
+
+  <!-- ═══ Generator Controls ═══ -->
+  <div class="card slide-up slide-up-d2" id="control-card">
+    <div class="card-header">
+      <div class="icon" style="background:#fef9ef;color:var(--accent);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </div>
+      <h3>生成助记词</h3>
+    </div>
+    <div class="control-grid">
+      <button id="btn-12" class="mode-btn active" onclick="app.setLength(12)">
+        12 个单词
+        <span class="bits">128-bit 熵</span>
+      </button>
+      <button id="btn-24" class="mode-btn" onclick="app.setLength(24)">
+        24 个单词
+        <span class="bits">256-bit 熵</span>
+      </button>
+      <button class="generate-btn" id="gen-btn" onclick="app.startGeneration()">
+        开始生成 · 采集物理熵
+      </button>
+    </div>
+
+    <!-- Result Area -->
+    <div id="mnemonic-display" class="mnemonic-display" style="margin-top:20px;">
+      <div class="placeholder-text">点击上方按钮开始生成助记词</div>
+    </div>
+    <div class="result-actions" id="result-actions" style="display:none;">
+      <button class="btn-secondary" onclick="app.clearResult()">清除显示</button>
+      <button class="btn-secondary" onclick="app.verifyRandomness()">验证随机性（重新生成）</button>
+    </div>
+  </div>
+
+  <!-- ═══ Knowledge Cards ═══ -->
+  <div class="knowledge-grid slide-up slide-up-d3">
+    <!-- Card 1: BIP39 -->
+    <div class="knowledge-card">
+      <div class="kc-icon amber">🔐</div>
+      <h4>什么是 BIP39？</h4>
+      <p>BIP39（Bitcoin Improvement Proposal 39）定义了将随机熵编码为一组助记词的标准。12 个单词 = 128-bit 安全强度，24 个单词 = 256-bit。每个单词来自 2048 个词的标准化词表。</p>
+      <span class="kc-tag amber">标准协议</span>
+    </div>
+
+    <!-- Card 2: Entropy -->
+    <div class="knowledge-card">
+      <div class="kc-icon blue">🎲</div>
+      <h4>双重熵源混合</h4>
+      <p>本工具同时采集两路随机源：系统 CSPRNG（密码学安全伪随机数）+ 你的物理动作（鼠标/触摸坐标+时间噪声）。两者经 SHA-256 混合，即使其中一路被攻破，另一路仍能保证安全。</p>
+      <span class="kc-tag blue">深度防御</span>
+    </div>
+
+    <!-- Card 3: Why Offline -->
+    <div class="knowledge-card">
+      <div class="kc-icon green">📴</div>
+      <h4>为什么必须离线？</h4>
+      <p>联网环境下，恶意软件、浏览器扩展或中间人攻击可能窃取你的助记词。物理隔离（Air Gap）是保护高价值密钥的最有效方式。本页面零外部请求，可直接在断网环境打开。</p>
+      <span class="kc-tag green">物理隔离</span>
+    </div>
+
+    <!-- Card 4: Verify -->
+    <div class="knowledge-card">
+      <div class="kc-icon red">🔍</div>
+      <h4>如何验证安全性？</h4>
+      <p>打开浏览器开发者工具 → Network 标签页，你会发现没有任何网络请求。所有代码（BIP39 算法、词表、UI）都在这个单文件中，任何懂 JavaScript 的人都可以完整审计。</p>
+      <span class="kc-tag red">可审计</span>
+    </div>
+
+    <!-- Card 5: CSPRNG -->
+    <div class="knowledge-card">
+      <div class="kc-icon blue">⚙️</div>
+      <h4>CSPRNG 是什么？</h4>
+      <p>密码学安全伪随机数生成器（CSPRNG）利用操作系统的熵池产生不可预测的随机数。浏览器通过 Web Crypto API (<code>getRandomValues</code>) 访问，其安全强度经过严格的密码学验证。</p>
+      <span class="kc-tag blue">底层原理</span>
+    </div>
+
+    <!-- Card 6: Best Practices -->
+    <div class="knowledge-card">
+      <div class="kc-icon green">✅</div>
+      <h4>冷存储最佳实践</h4>
+      <p>① 专用离线设备生成 ② 纸笔手抄两份 ③ 异地保存防火灾 ④ 验证备份：重新生成确保结果不同 ⑤ 生成后退还/销毁设备 ⑥ 永远不要将助记词输入任何联网设备。</p>
+      <span class="kc-tag green">最佳实践</span>
+    </div>
+  </div>
+
+  <!-- ═══ Footer ═══ -->
   <div class="footer">
-    Algorithm: BIP39 Standard<br>
-    Entropy Source: window.crypto.getRandomValues (Browser Native)<br>
-    Hash Function: window.crypto.subtle.digest('SHA-256')<br>
-    [ Open Source | No External Scripts | Offline Ready ]
+    <span>Entropy Vault · BIP39 Mnemonic Generator</span>
+    <span class="footer-meta">Single File · Zero Dependencies · Open Source · Air-Gap Ready</span>
+  </div>
+
+</div>
+
+<!-- ═══ Entropy Collection Overlay (hidden by default) ═══ -->
+<div id="entropy-overlay" class="entropy-overlay" style="display:none;">
+  <div class="entropy-panel" id="entropy-area">
+    <h2>采集物理熵</h2>
+    <p class="hint">在下方区域随意移动鼠标或手指<br>直到进度条填满</p>
+    <div class="entropy-bar-track">
+      <div class="entropy-bar-fill" id="entropy-bar"></div>
+    </div>
+    <div class="entropy-stats">
+      <div>事件数 <span id="ent-count">0</span></div>
+      <div>唯一值 <span id="ent-unique">0</span></div>
+      <div>进度 <span id="ent-pct">0%</span></div>
+    </div>
+    <div id="entropy-pad" style="
+      width:100%; height:160px;
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      margin-top: 16px;
+      background: var(--surface-alt);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 0.85rem;
+      cursor: crosshair;
+      transition: border-color 0.3s;
+      user-select: none;
+      -webkit-user-select: none;
+    ">在此区域移动鼠标或手指</div>
+    <button class="entropy-cancel" onclick="app.cancelGeneration()">取消</button>
   </div>
 </div>
 
 <script>
 /**
- * 极简冷钱包核心逻辑
- * * 1. 移除了所有第三方库，使用原生 JS 实现。
- * 2. 实现了标准的 BIP39 流程：熵 -> SHA256校验 -> 二进制拼接 -> 映射词表。
- * 3. 方便代码审计。
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  Entropy Vault — BIP39 Mnemonic Generator              ║
+ * ║                                                        ║
+ * ║  Architecture:                                         ║
+ * ║  1. CSPRNG entropy (128/256 bit from Web Crypto API)   ║
+ * ║  2. Physical entropy (mouse/touch coordinate + time)   ║
+ * ║  3. SHA-256 dual-source mixing                         ║
+ * ║  4. BIP39 checksum computation                         ║
+ * ║  5. Wordlist mapping (2048 standard words)             ║
+ * ║                                                        ║
+ * ║  Security properties:                                  ║
+ * ║  - Zero external requests (CSP enforced)               ║
+ * ║  - No copy-to-clipboard functionality                  ║
+ * ║  - Memory cleanup after generation                     ║
+ * ║  - Air-gap readiness                                   ║
+ * ║  - Full source auditability                            ║
+ * ╚══════════════════════════════════════════════════════════╝
  */
 
-// BIP39 英文标准词表 (2048个单词，按顺序排列)
-const WORDLIST = [
-"abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid",
-"acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance",
-"advice","aerobic","affair","afford","afraid","again","age","agent","agree","ahead","aim","air","airport","aisle","alarm","album",
-"alcohol","alert","alien","all","alley","allow","almost","alone","alpha","already","also","alter","always","amateur","amazing","among",
-"amount","amused","analyst","anchor","ancient","anger","angle","angry","animal","ankle","announce","annual","another","answer","antenna","antique",
-"anxiety","any","apart","apology","appear","apple","approve","april","arch","arctic","area","arena","argue","arm","armed","armor",
-"army","around","arrange","arrest","arrive","arrow","art","artefact","artist","artwork","ask","aspect","assault","asset","assist","assume",
-"asthma","athlete","atom","attack","attend","attitude","attract","auction","audit","august","aunt","author","auto","autumn","average","avocado",
-"avoid","awake","aware","away","awesome","awful","awkward","axis","baby","bachelor","bacon","badge","bag","balance","balcony","ball",
-"bamboo","banana","banner","bar","barely","bargain","barrel","base","basic","basket","battle","beach","bean","beauty","because","become",
-"beef","before","begin","behave","behind","believe","below","belt","bench","benefit","best","betray","better","between","beyond","bicycle",
-"bid","bike","bind","biology","bird","birth","bitter","black","blade","blame","blanket","blast","bleak","bless","blind","blood",
-"blossom","blouse","blue","blur","blush","board","boat","body","boil","bomb","bone","bonus","book","boost","border","boring",
-"borrow","boss","bottom","bounce","box","boy","bracket","brain","brand","brass","brave","bread","breeze","brick","bridge","brief",
-"bright","bring","brisk","broccoli","broken","bronze","broom","brother","brown","brush","bubble","buddy","budget","buffalo","build","bulb",
-"bulk","bullet","bundle","bunker","burden","burger","burst","bus","business","busy","butter","buyer","buzz","cabbage","cabin","cable",
-"cactus","cage","cake","call","calm","camera","camp","can","canal","cancel","candy","cannon","canoe","canvas","canyon","capable",
-"capital","captain","car","carbon","card","cargo","carpet","carry","cart","case","cash","casino","castle","casual","cat","catalog",
-"catch","category","cattle","caught","cause","caution","cave","ceiling","celery","cement","census","century","cereal","certain","chair","chalk",
-"champion","change","chaos","chapter","charge","chase","chat","cheap","check","cheese","chef","cherry","chest","chicken","chief","child",
-"chimney","choice","choose","chronic","chuckle","chunk","churn","cigar","cinnamon","circle","citizen","city","civil","claim","clap","clarify",
-"claw","clay","clean","clerk","clever","click","client","cliff","climb","clinic","clip","clock","clog","close","cloth","cloud",
-"clown","club","clump","cluster","clutch","coach","coast","coconut","code","coffee","coil","coin","collect","color","column","combine",
-"come","comfort","comic","common","company","concert","conduct","confirm","congress","connect","consider","control","convince","cook","cool","copper",
-"copy","coral","core","corn","correct","cost","cotton","couch","country","couple","course","cousin","cover","coyote","crack","cradle",
-"craft","cram","crane","crash","crater","crawl","crazy","cream","credit","creek","crew","cricket","crime","crisp","critic","crop",
-"cross","crouch","crowd","crucial","cruel","cruise","crumble","crunch","crush","cry","crystal","cube","culture","cup","cupboard","curious",
-"current","curtain","curve","cushion","custom","cute","cycle","dad","damage","damp","dance","danger","daring","dash","daughter","dawn",
-"day","deal","debate","debris","decade","december","decide","decline","decorate","decrease","deer","defense","define","defy","degree","delay",
-"deliver","demand","demise","denial","dentist","deny","depart","depend","deposit","depth","deputy","derive","describe","desert","design","desk",
-"despair","destroy","detail","detect","develop","device","devote","diagram","dial","diamond","diary","dice","diesel","diet","differ","digital",
-"dignity","dilemma","dinner","dinosaur","direct","dirt","disagree","discover","disease","dish","dismiss","disorder","display","distance","divert","divide",
-"divorce","dizzy","doctor","document","dog","doll","dolphin","domain","donate","donkey","donor","door","dose","double","dove","draft",
-"dragon","drama","drastic","draw","dream","dress","drift","drill","drink","drip","drive","drop","drum","dry","duck","dumb",
-"dune","during","dust","dutch","duty","dwarf","dynamic","eager","eagle","early","earn","earth","easily","east","easy","echo",
-"ecology","economy","edge","edit","educate","effort","egg","eight","either","elbow","elder","electric","elegant","element","elephant","elevator",
-"elite","else","embark","embody","embrace","emerge","emotion","employ","empower","empty","enable","enact","end","endless","endorse","enemy",
-"energy","enforce","engage","engine","enhance","enjoy","enlist","enough","enrich","enroll","ensure","enter","entire","entry","envelope","episode",
-"equal","equip","era","erase","erode","erosion","error","erupt","escape","essay","essence","estate","eternal","ethics","evidence","evil",
-"evoke","evolve","exact","example","excess","exchange","excite","exclude","excuse","execute","exercise","exhaust","exhibit","exile","exist","exit",
-"exotic","expand","expect","expire","explain","expose","express","extend","extra","eye","eyebrow","fabric","face","faculty","fade","faint",
-"faith","fall","false","fame","family","famous","fan","fancy","fantasy","farm","fashion","fat","fatal","father","fatigue","fault",
-"favorite","feature","february","federal","fee","feed","feel","female","fence","festival","fetch","fever","few","fiber","fiction","field",
-"figure","file","film","filter","final","find","fine","finger","finish","fire","firm","first","fiscal","fish","fit","fitness",
-"fix","flag","flame","flash","flat","flavor","flee","flight","flip","float","flock","floor","flower","fluid","flush","fly",
-"foam","focus","fog","foil","fold","follow","food","foot","force","forest","forget","fork","fortune","forum","forward","fossil",
-"foster","found","fox","fragile","frame","frequent","fresh","friend","fringe","frog","front","frost","frown","frozen","fruit","fuel",
-"fun","funny","furnace","fury","future","gadget","gain","galaxy","gallery","game","gap","garage","garbage","garden","garlic","garment",
-"gas","gasp","gate","gather","gauge","gaze","general","genius","genre","gentle","genuine","gesture","ghost","giant","gift","giggle",
-"ginger","giraffe","girl","give","glad","glance","glare","glass","glide","glimpse","globe","gloom","glory","glove","glow","glue",
-"goat","goddess","gold","good","goose","gorilla","gospel","gossip","govern","gown","grab","grace","grain","grant","grape","grass",
-"gravity","great","green","grid","grief","grit","grocery","group","grow","grunt","guard","guess","guide","guilt","guitar","gun",
-"gym","habit","hair","half","hammer","hamster","hand","happy","harbor","hard","harsh","harvest","hat","have","hawk","hazard",
-"head","health","heart","heavy","hedgehog","height","hello","helmet","help","hen","hero","hidden","high","hill","hint","hip",
-"hire","history","hobby","hockey","hold","hole","holiday","hollow","home","honey","hood","hope","horn","horror","horse","hospital",
-"host","hotel","hour","hover","hub","huge","human","humble","humor","hundred","hungry","hunt","hurdle","hurry","hurt","husband",
-"hybrid","ice","icon","idea","identify","idle","ignore","ill","illegal","illness","image","imitate","immense","immune","impact","impose",
-"improve","impulse","inch","include","income","increase","index","indicate","indoor","industry","infant","inflict","inform","inhale","inherit","initial",
-"inject","injury","inmate","inner","innocent","input","inquiry","insane","insect","inside","inspire","install","intact","interest","into","invest",
-"invite","involve","iron","island","isolate","issue","item","ivory","jacket","jaguar","jar","jazz","jealous","jeans","jelly","jewel",
-"job","join","joke","journey","joy","judge","juice","jump","jungle","junior","junk","just","kangaroo","keen","keep","ketchup",
-"key","kick","kid","kidney","kind","kingdom","kiss","kit","kitchen","kite","kitten","kiwi","knee","knife","knock","know",
-"lab","label","labor","ladder","lady","lake","lamp","language","laptop","large","later","latin","laugh","laundry","lava","law",
-"lawn","lawsuit","layer","lazy","leader","leaf","learn","leave","lecture","left","leg","legal","legend","leisure","lemon","lend",
-"length","lens","leopard","lesson","letter","level","liar","liberty","library","license","life","lift","light","like","limb","limit",
-"link","lion","liquid","list","little","live","lizard","load","loan","lobster","local","lock","logic","lonely","long","loop",
-"lottery","loud","lounge","love","loyal","lucky","luggage","lumber","lunar","lunch","luxury","lyrics","machine","mad","magic","magnet",
-"maid","mail","main","major","make","mammal","man","manage","mandate","mango","mansion","manual","maple","marble","march","margin",
-"marine","market","marriage","mask","mass","master","match","material","math","matrix","matter","maximum","maze","meadow","mean","measure",
-"meat","mechanic","medal","media","melody","melt","member","memory","mention","menu","mercy","merge","merit","merry","mesh","message",
-"metal","method","middle","midnight","milk","million","mimic","mind","minimum","minor","minute","miracle","mirror","misery","miss","mistake",
-"mix","mixed","mixture","mobile","model","modify","mom","moment","monitor","monkey","monster","month","moon","moral","more","morning",
-"mosquito","mother","motion","motor","mountain","mouse","move","movie","much","muffin","mule","multiply","muscle","museum","mushroom","music",
-"must","mutual","myself","mystery","myth","naive","name","napkin","narrow","nasty","nation","nature","near","neck","need","negative",
-"neglect","neither","nephew","nerve","nest","net","network","neutral","never","news","next","nice","night","noble","noise","nominee",
-"noodle","normal","north","nose","notable","note","nothing","notice","novel","now","nuclear","number","nurse","nut","oak","obey",
-"object","oblige","obscure","observe","obtain","obvious","occur","ocean","october","odor","off","offer","office","often","oil","okay",
-"old","olive","olympic","omit","once","one","onion","online","only","open","opera","opinion","oppose","option","orange","orbit",
-"orchard","order","ordinary","organ","orient","original","orphan","ostrich","other","outdoor","outer","output","outside","oval","oven","over",
-"own","owner","oxygen","oyster","ozone","pact","paddle","page","pair","palace","palm","panda","panel","panic","panther","paper",
-"parade","parent","park","parrot","party","pass","patch","path","patient","patrol","pattern","pause","pave","payment","peace","peanut",
-"pear","peasant","pelican","pen","penalty","pencil","people","pepper","perfect","permit","person","pet","phone","photo","phrase","physical",
-"piano","picnic","picture","piece","pig","pigeon","pill","pilot","pink","pioneer","pipe","pistol","pitch","pizza","place","planet",
-"plastic","plate","play","please","pledge","pluck","plug","plunge","poem","poet","point","polar","pole","police","pond","pony",
-"pool","popular","portion","position","possible","post","potato","pottery","poverty","powder","power","practice","praise","predict","prefer","prepare",
-"present","pretty","prevent","price","pride","primary","print","priority","prison","private","prize","problem","process","produce","profit","program",
-"project","promote","proof","property","prosper","protect","proud","provide","public","pudding","pull","pulp","pulse","pumpkin","punch","pupil",
-"puppy","purchase","purity","purpose","purse","push","put","puzzle","pyramid","quality","quantum","quarter","question","quick","quit","quiz",
-"quote","rabbit","raccoon","race","rack","radar","radio","rail","rain","raise","rally","ramp","ranch","random","range","rapid",
-"rare","rate","rather","raven","raw","razor","ready","real","reason","rebel","rebuild","recall","receive","recipe","record","recycle",
-"reduce","reflect","reform","refuse","region","regret","regular","reject","relax","release","relief","rely","remain","remember","remind","remove",
-"render","renew","rent","reopen","repair","repeat","replace","report","require","rescue","resemble","resist","resource","response","result","retire",
-"retreat","return","reunion","reveal","review","reward","rhythm","rib","ribbon","rice","rich","ride","ridge","rifle","right","rigid",
-"ring","riot","ripple","risk","ritual","rival","river","road","roast","robot","robust","rocket","romance","roof","rookie","room",
-"rose","rotate","rough","round","route","royal","rubber","rude","rug","rule","run","runway","rural","sad","saddle","sadness",
-"safe","sail","salad","salmon","salon","salt","salute","same","sample","sand","satisfy","satoshi","sauce","sausage","save","say",
-"scale","scan","scare","scatter","scene","scheme","school","science","scissors","scorpion","scout","scrap","screen","script","scrub","sea",
-"search","season","seat","second","secret","section","security","seed","seek","segment","select","sell","seminar","senior","sense","sentence",
-"series","service","session","settle","setup","seven","shadow","shaft","shallow","share","shed","shell","sheriff","shield","shift","shine",
-"ship","shiver","shock","shoe","shoot","shop","short","shoulder","shove","shrimp","shrug","shuffle","shy","sibling","sick","side",
-"siege","sight","sign","silent","silk","silly","silver","similar","simple","since","sing","siren","sister","situate","six","size",
-"skate","sketch","ski","skill","skin","skirt","skull","slab","slam","sleep","slender","slice","slide","slight","slim","slogan",
-"slot","slow","slush","small","smart","smile","smoke","smooth","snack","snake","snap","sniff","snow","soap","soccer","social",
-"sock","soda","soft","solar","soldier","solid","solution","solve","someone","song","soon","sorry","sort","soul","sound","soup",
-"source","south","space","spare","spatial","spawn","speak","special","speed","spell","spend","sphere","spice","spider","spike","spin",
-"spirit","split","spoil","sponsor","spoon","sport","spot","spray","spread","spring","spy","square","squeeze","squirrel","stable","stadium",
-"staff","stage","stairs","stamp","stand","start","state","stay","steak","steel","stem","step","stereo","stick","still","sting",
-"stock","stomach","stone","stool","story","stove","strategy","street","strike","strong","struggle","student","stuff","stumble","style","subject",
-"submit","subway","success","such","sudden","suffer","sugar","suggest","suit","summer","sun","sunny","sunset","super","supply","supreme",
-"sure","surface","surge","surprise","surround","survey","suspect","sustain","swallow","swamp","swap","swarm","swear","sweet","swift","swim",
-"swing","switch","sword","symbol","symptom","syrup","system","table","tackle","tag","tail","talent","talk","tank","tape","target",
-"task","taste","tattoo","taxi","teach","team","tell","ten","tenant","tennis","tent","term","test","text","thank","that",
-"theme","then","theory","there","they","thing","this","thought","three","thrive","throw","thumb","thunder","ticket","tide","tiger",
-"tilt","timber","time","tiny","tip","tired","tissue","title","toast","tobacco","today","toddler","toe","together","toilet","token",
-"tomato","tomorrow","tone","tongue","tonight","tool","tooth","top","topic","topple","torch","tornado","tortoise","toss","total","tourist",
-"toward","tower","town","toy","track","trade","traffic","tragic","train","transfer","trap","trash","travel","tray","treat","tree",
-"trend","trial","tribe","trick","trigger","trim","trip","trophy","trouble","truck","true","truly","trumpet","trust","truth","try",
-"tube","tuition","tumble","tuna","tunnel","turkey","turn","turtle","twelve","twenty","twice","twin","twist","two","type","typical",
-"ugly","umbrella","unable","unaware","uncle","uncover","under","undo","unfair","unfold","unhappy","uniform","unique","unit","universe","unknown",
-"unlock","until","unusual","unveil","update","upgrade","uphold","upon","upper","upset","urban","urge","usage","use","used","useful",
-"useless","usual","utility","vacant","vacuum","vague","valid","valley","valve","van","vanish","vapor","various","vast","vault","vehicle",
-"velvet","vendor","venture","venue","verb","verify","version","very","vessel","veteran","viable","vibrant","vicious","victory","video","view",
-"village","vintage","violin","virtual","virus","visa","visit","visual","vital","vivid","vocal","voice","void","volcano","volume","vote",
-"voyage","wage","wagon","wait","walk","wall","walnut","want","warfare","warm","warrior","wash","wasp","waste","water","wave",
-"way","wealth","weapon","wear","weasel","weather","web","wedding","weekend","weird","welcome","west","wet","whale","what","wheat",
-"wheel","when","where","whip","whisper","wide","width","wife","wild","will","win","window","wine","wing","wink","winner",
-"winter","wire","wisdom","wise","wish","witness","wolf","woman","wonder","wood","wool","word","work","world","worry","worth",
-"wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"
-];
+// ── BIP39 English Wordlist (2048 words) ──
+var WORDLIST = "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic affair afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware away awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below belt bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blouse blue blur blush board boat body boil bomb bone bonus book boost border boring borrow boss bottom bounce box boy bracket brain brand brass brave bread breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunker burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp can canal cancel candy cannon canoe canvas canyon capable capital captain car carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle caught cause caution cave ceiling celery cement census century cereal certain chair chalk champion change chaos chapter charge chase chat cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk churn cigar cinnamon circle citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster clutch coach coast coconut code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic crop cross crouch crowd crucial cruel cruise crumble crunch crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology economy edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable enact end endless endorse enemy energy enforce engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip era erase erode erosion error erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude excuse execute exercise exhaust exhibit exile exist exit exotic expand expect expire explain expose express extend extra eye eyebrow fabric face faculty fade faint faith fall false fame family famous fan fancy fantasy farm fashion fat fatal father fatigue fault favorite feature february federal fee feed feel female fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm first fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil fold follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garage garbage garden garlic garment gas gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost giant gift giggle ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grass gravity great green grid grief grit grocery group grow grunt guard guess guide guilt guitar gun gym habit hair half hammer hamster hand happy harbor hard harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hidden high hill hint hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn horror horse hospital host hotel hour hover hub huge human humble humor hundred hungry hunt hurdle hurry hurt husband hybrid ice icon idea identify idle ignore ill illegal illness image imitate immense immune impact impose improve impulse inch include income increase index indicate indoor industry infant inflict inform inhale inherit initial inject injury inmate inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve iron island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kidney kind kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab label labor ladder lady lake lamp language laptop large later latin laugh laundry lava law lawn lawsuit layer lazy leader leaf learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liar liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics machine mad magic magnet maid mail main major make mammal man manage mandate mango mansion manual maple marble march margin marine market marriage mask mass master match material math matrix matter maximum maze meadow mean measure meat mechanic medal media melody melt member memory mention menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor minute miracle mirror misery miss mistake mix mixed mixture mobile model modify mom moment monitor monkey monster month moon moral more morning mosquito mother motion motor mountain mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery myth naive name napkin narrow nasty nation nature near neck need negative neglect neither nephew nerve nest net network neutral never news next nice night noble noise nominee noodle normal north nose notable note nothing notice novel now nuclear number nurse nut oak obey object oblige obscure observe obtain obvious occur ocean october odor off offer office often oil okay old olive olympic omit once one onion online only open opera opinion oppose option orange orbit orchard order ordinary organ orient original orphan ostrich other outdoor outer output outside oval oven over own owner oxygen oyster ozone pact paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patient patrol pattern pause pave payment peace peanut pear peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic picture piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony pool popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program project promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punch pupil puppy purchase purity purpose purse push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rail rain raise rally ramp ranch random range rapid rare rate rather raven raw razor ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform refuse region regret regular reject relax release relief rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm rib ribbon rice rich ride ridge rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie room rose rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme school science scissors scorpion scout scrap screen script scrub sea search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling sick side siege sight sign silent silk silly silver similar simple since sing siren sister situate six size skate sketch ski skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock soda soft solar soldier solid solution solve someone song soon sorry sort soul sound soup source south space spare spatial spawn speak special speed spell spend sphere spice spider spike spin spirit split spoil sponsor spoon sport spot spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stool story stove strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunset super supply supreme sure surface surge surprise surround survey suspect sustain swallow swamp swap swarm swear sweet swift swim swing switch sword symbol symptom syrup system table tackle tag tail talent talk tank tape target task taste tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there they thing this thought three thrive throw thumb thunder ticket tide tiger tilt timber time tiny tip tired tissue title toast tobacco today toddler toe together toilet token tomato tomorrow tone tongue tonight tool tooth top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial tribe trick trigger trim trip trophy trouble truck true truly trumpet trust truth try tube tuition tumble tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform unique unit universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban urge usage use used useful useless usual utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very vessel veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel weather web wedding weekend weird welcome west wet whale what wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word work world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo".split(" ");
 
-const App = {
-  length: 12, // 默认12位
+var App = {
+  targetLength: 12,
+  entropyEvents: [],
+  entropyTarget: 256, // Minimum unique entropy events to collect
+  generationInProgress: false,
+  entropyListeners: null,
 
-  init() {
+  /* ── Init ── */
+  init: function() {
     this.updateNetworkStatus();
-    window.addEventListener('online', () => this.updateNetworkStatus());
-    window.addEventListener('offline', () => this.updateNetworkStatus());
+    window.addEventListener('online', this.updateNetworkStatus.bind(this));
+    window.addEventListener('offline', this.updateNetworkStatus.bind(this));
   },
 
-  // 切换长度
-  setLength(len) {
-    this.length = len;
+  /* ── Network Status ── */
+  updateNetworkStatus: function() {
+    var chip = document.getElementById('net-chip');
+    var text = document.getElementById('net-text');
+    var online = navigator.onLine;
+    if (online) {
+      chip.className = 'status-chip online';
+      text.textContent = '在线 — 请立即断开网络';
+    } else {
+      chip.className = 'status-chip offline';
+      text.textContent = '离线 · 安全状态';
+    }
+  },
+
+  /* ── Length Selector ── */
+  setLength: function(len) {
+    this.targetLength = len;
     document.getElementById('btn-12').className = len === 12 ? 'mode-btn active' : 'mode-btn';
     document.getElementById('btn-24').className = len === 24 ? 'mode-btn active' : 'mode-btn';
   },
 
-  // 网络状态检测逻辑
-  updateNetworkStatus() {
-    const el = document.getElementById('network-status');
-    const isOnline = navigator.onLine;
+  /* ── Start Generation Flow ── */
+  startGeneration: function() {
+    if (this.generationInProgress) return;
 
-    if (isOnline) {
-      el.className = 'network-badge online blink';
-      el.innerHTML = '<span class="status-icon">●</span> 在线 (危险 - 请断网)';
-    } else {
-      el.className = 'network-badge offline';
-      el.innerHTML = '<span class="status-icon">●</span> 离线 (安全)';
-    }
-  },
-
-  // 【核心】生成逻辑
-  async generate() {
-    // 1. 环境检查
-    if (!window.crypto || !window.crypto.subtle) {
-      alert("错误：您的浏览器太旧，不支持 Web Crypto API，无法安全生成。请使用 Chrome 60+ 或 Firefox 55+");
+    // Check browser support
+    if (!window.crypto || !window.crypto.subtle || !window.crypto.getRandomValues) {
+      alert('错误：您的浏览器不支持 Web Crypto API。请使用 Chrome 60+ 或 Firefox 55+ 等现代浏览器。');
       return;
     }
 
-    // 2. 准备熵 (Entropy)
-    // 12 words = 128 bits entropy
-    // 24 words = 256 bits entropy
-    const entropyBits = this.length === 12 ? 128 : 256;
-    const entropyBytes = entropyBits / 8;
-    const entropyBuffer = new Uint8Array(entropyBytes);
-    
-    // 3. 生成强随机数 (CSPRNG)
-    window.crypto.getRandomValues(entropyBuffer);
+    this.generationInProgress = true;
+    this.entropyEvents = [];
 
-    // 4. 计算校验和 (SHA-256)
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', entropyBuffer);
-    const hashArray = new Uint8Array(hashBuffer);
+    // Show overlay
+    var overlay = document.getElementById('entropy-overlay');
+    overlay.style.display = 'flex';
 
-    // 5. 拼接二进制字符串
-    let binaryStr = "";
-    // 将熵转为二进制
-    for (let i = 0; i < entropyBuffer.length; i++) {
-      binaryStr += entropyBuffer[i].toString(2).padStart(8, '0');
-    }
+    // Reset UI
+    document.getElementById('entropy-bar').style.width = '0%';
+    document.getElementById('ent-count').textContent = '0';
+    document.getElementById('ent-unique').textContent = '0';
+    document.getElementById('ent-pct').textContent = '0%';
 
-    // 计算校验和长度 (Entropy bits / 32)
-    const checksumLength = entropyBits / 32;
-    // 取哈希的第一个字节的高N位
-    const checksumBits = hashArray[0].toString(2).padStart(8, '0').substring(0, checksumLength);
-    
-    // 拼接：熵 + 校验和
-    const fullBinary = binaryStr + checksumBits;
-
-    // 6. 切割并映射词表
-    // 每 11 bits 对应一个单词
-    const chunks = fullBinary.match(/.{1,11}/g);
-    const mnemonic = chunks.map(binary => {
-      const index = parseInt(binary, 2);
-      return WORDLIST[index];
-    });
-
-    // 7. 渲染 UI
-    this.render(mnemonic);
-
-    // 8. 内存清理 (虽然 JS 有 GC，但手动清零是个好习惯)
-    entropyBuffer.fill(0);
+    // Bind entropy collection
+    this.bindEntropyCollection();
   },
 
-  render(words) {
-    const container = document.getElementById('mnemonic-container');
-    container.innerHTML = '';
-    
-    words.forEach((word, index) => {
-      const cell = document.createElement('div');
-      cell.className = 'word-cell';
-      cell.innerHTML = `
-        <span class="word-index">${index + 1}</span>
-        <span class="word-text">${word}</span>
-      `;
-      container.appendChild(cell);
+  /* ── Bind Mouse/Touch Entropy Collection ── */
+  bindEntropyCollection: function() {
+    var self = this;
+    var pad = document.getElementById('entropy-pad');
+    var updateUI = function() {
+      var count = self.entropyEvents.length;
+      var uniqueSet = {};
+      for (var i = 0; i < self.entropyEvents.length; i++) {
+        uniqueSet[self.entropyEvents[i]] = true;
+      }
+      var unique = Object.keys(uniqueSet).length;
+      var pct = Math.min(100, Math.round((unique / self.entropyTarget) * 100));
+
+      document.getElementById('entropy-bar').style.width = pct + '%';
+      document.getElementById('ent-count').textContent = count;
+      document.getElementById('ent-unique').textContent = unique;
+      document.getElementById('ent-pct').textContent = pct + '%';
+
+      if (pct >= 100) {
+        self.unbindEntropyCollection();
+        self.completeGeneration();
+      }
+    };
+
+    var handler = function(e) {
+      e.preventDefault();
+      var t = performance.now();
+      var x, y, pressure;
+
+      if (e.touches && e.touches.length > 0) {
+        x = e.touches[0].clientX;
+        y = e.touches[0].clientY;
+        pressure = e.touches[0].force || 0;
+      } else if (e.changedTouches && e.changedTouches.length > 0) {
+        x = e.changedTouches[0].clientX;
+        y = e.changedTouches[0].clientY;
+        pressure = e.changedTouches[0].force || 0;
+      } else {
+        x = e.clientX;
+        y = e.clientY;
+        pressure = e.pressure || 0;
+      }
+
+      // Collect high-resolution entropy data points
+      var sample = [
+        Math.round(x * 1000),
+        Math.round(y * 1000),
+        Math.round(t * 1000) % 1000000,
+        Math.round(pressure * 1000),
+        Math.round(Math.random() * 1000000) // Non-crypto timing jitter
+      ].join(':');
+
+      self.entropyEvents.push(sample);
+      updateUI();
+    };
+
+    this.entropyListeners = { pad: pad, handler: handler, updateUI: updateUI };
+
+    pad.addEventListener('mousemove', handler, { passive: false });
+    pad.addEventListener('touchmove', handler, { passive: false });
+    pad.addEventListener('mousedown', handler, { passive: false });
+    pad.addEventListener('touchstart', handler, { passive: false });
+    pad.addEventListener('click', handler, { passive: false });
+
+    // Also collect from the full overlay panel area for more entropy
+    var panel = document.getElementById('entropy-area');
+    panel.addEventListener('mousemove', handler, { passive: false });
+    panel.addEventListener('touchmove', handler, { passive: false });
+  },
+
+  /* ── Unbind Entropy Listeners ── */
+  unbindEntropyCollection: function() {
+    if (!this.entropyListeners) return;
+    var l = this.entropyListeners;
+    l.pad.removeEventListener('mousemove', l.handler);
+    l.pad.removeEventListener('touchmove', l.handler);
+    l.pad.removeEventListener('mousedown', l.handler);
+    l.pad.removeEventListener('touchstart', l.handler);
+    l.pad.removeEventListener('click', l.handler);
+
+    var panel = document.getElementById('entropy-area');
+    panel.removeEventListener('mousemove', l.handler);
+    panel.removeEventListener('touchmove', l.handler);
+
+    this.entropyListeners = null;
+  },
+
+  /* ── Cancel ── */
+  cancelGeneration: function() {
+    this.unbindEntropyCollection();
+    this.generationInProgress = false;
+    this.entropyEvents = [];
+    document.getElementById('entropy-overlay').style.display = 'none';
+  },
+
+  /* ── Complete Generation: Mix Entropy + CSPRNG → BIP39 ── */
+  completeGeneration: function() {
+    var self = this;
+
+    // Hide overlay with a small delay for visual feedback
+    setTimeout(function() {
+      document.getElementById('entropy-overlay').style.display = 'none';
+    }, 300);
+
+    // 1. Gather Physical Entropy → Hash
+    var physData = this.entropyEvents.join('|');
+    this.entropyEvents = []; // Clear from memory
+
+    // 2. Generate CSPRNG entropy
+    var entropyBits = this.targetLength === 12 ? 128 : 256;
+    var entropyBytes = entropyBits / 8;
+    var csprngBuffer = new Uint8Array(entropyBytes);
+    window.crypto.getRandomValues(csprngBuffer);
+
+    // 3. SHA-256 hash physical entropy
+    var encoder = new TextEncoder();
+    var physEncoded = encoder.encode(physData);
+
+    Promise.all([
+      window.crypto.subtle.digest('SHA-256', physEncoded),
+      Promise.resolve(csprngBuffer)
+    ]).then(function(results) {
+      var physHash = new Uint8Array(results[0]);
+      var csprng = results[1];
+
+      // 4. Mix: XOR CSPRNG entropy with physical entropy hash
+      var mixedBuffer = new Uint8Array(entropyBytes);
+      for (var i = 0; i < entropyBytes; i++) {
+        mixedBuffer[i] = csprng[i] ^ physHash[i % 32];
+      }
+
+      // 5. Final SHA-256 over mixed entropy for uniform distribution
+      return window.crypto.subtle.digest('SHA-256', mixedBuffer).then(function(finalHash) {
+        var finalEntropy = new Uint8Array(finalHash).slice(0, entropyBytes);
+        return finalEntropy;
+      });
+    }).then(function(entropy) {
+      // 6. BIP39: entropy → mnemonic
+      var mnemonic = self.entropyToMnemonic(entropy);
+      self.render(mnemonic);
+
+      // 7. Memory cleanup
+      csprngBuffer.fill(0);
+      physData = null;
+      physEncoded = null;
+      self.generationInProgress = false;
+    }).catch(function(err) {
+      console.error('Generation failed:', err);
+      alert('生成失败，请重试。错误信息已记录到控制台。');
+      self.generationInProgress = false;
     });
+  },
+
+  /* ── BIP39: Entropy → Mnemonic (async, computes SHA-256 checksum) ── */
+  generateMnemonicAsync: function(entropyBytes) {
+    var self = this;
+    var entropyBits = entropyBytes.length * 8;
+
+    return window.crypto.subtle.digest('SHA-256', entropyBytes).then(function(hashBuffer) {
+      var hashArray = new Uint8Array(hashBuffer);
+
+      // Build binary string from entropy
+      var binaryStr = '';
+      for (var i = 0; i < entropyBytes.length; i++) {
+        binaryStr += entropyBytes[i].toString(2).padStart(8, '0');
+      }
+
+      // Checksum: first (entropyBits/32) bits of SHA-256(entropy)
+      var checksumLength = entropyBits / 32;
+      var checksumBinary = hashArray[0].toString(2).padStart(8, '0').substring(0, checksumLength);
+
+      var fullBinary = binaryStr + checksumBinary;
+
+      // Split into 11-bit chunks
+      var chunks = fullBinary.match(/.{1,11}/g);
+      var words = [];
+      for (var i = 0; i < chunks.length; i++) {
+        var idx = parseInt(chunks[i], 2);
+        words.push(WORDLIST[idx]);
+      }
+
+      // Cleanup
+      hashArray.fill(0);
+      return words;
+    });
+  },
+
+  /* ── Full async flow ── */
+  completeGenerationAsync: function() {
+    var self = this;
+
+    // Hide overlay
+    setTimeout(function() {
+      document.getElementById('entropy-overlay').style.display = 'none';
+    }, 300);
+
+    var physData = this.entropyEvents.join('|');
+    this.entropyEvents = [];
+
+    var entropyBytes = this.targetLength === 12 ? 16 : 32;
+    var csprngBuffer = new Uint8Array(entropyBytes);
+    window.crypto.getRandomValues(csprngBuffer);
+
+    var encoder = new TextEncoder();
+    var physEncoded = encoder.encode(physData);
+
+    var _csprng = csprngBuffer;
+
+    window.crypto.subtle.digest('SHA-256', physEncoded).then(function(physHash) {
+      var physArr = new Uint8Array(physHash);
+      var mixed = new Uint8Array(entropyBytes);
+      for (var i = 0; i < entropyBytes; i++) {
+        mixed[i] = _csprng[i] ^ physArr[i % 32];
+      }
+      return window.crypto.subtle.digest('SHA-256', mixed).then(function(finalHash) {
+        return new Uint8Array(finalHash).slice(0, entropyBytes);
+      });
+    }).then(function(finalEntropy) {
+      return self.generateMnemonicAsync(finalEntropy);
+    }).then(function(mnemonic) {
+      self.render(mnemonic);
+      _csprng.fill(0);
+      physData = null;
+      physEncoded = null;
+      self.generationInProgress = false;
+    }).catch(function(err) {
+      console.error('Generation error:', err);
+      alert('生成失败：' + err.message);
+      self.generationInProgress = false;
+    });
+  },
+
+  /* ── Render Mnemonic ── */
+  render: function(words) {
+    var container = document.getElementById('mnemonic-display');
+    container.innerHTML = '';
+
+    for (var i = 0; i < words.length; i++) {
+      var chip = document.createElement('div');
+      chip.className = 'word-chip';
+      chip.innerHTML = '<span class="word-num">' + (i + 1) + '</span><span class="word-val">' + words[i] + '</span>';
+      container.appendChild(chip);
+    }
+
+    document.getElementById('result-actions').style.display = 'flex';
+  },
+
+  /* ── Clear Result ── */
+  clearResult: function() {
+    var container = document.getElementById('mnemonic-display');
+    container.innerHTML = '<div class="placeholder-text">点击上方按钮开始生成助记词</div>';
+    document.getElementById('result-actions').style.display = 'none';
+  },
+
+  /* ── Verify Randomness ── */
+  verifyRandomness: function() {
+    this.clearResult();
+    this.startGeneration();
   }
 };
 
-// 启动应用
-const app = Object.create(App);
-app.init();
+// ── Override completeGeneration to use the full async flow ──
+App.completeGeneration = App.completeGenerationAsync;
 
+// ── Boot ──
+App.init();
 </script>
+
 </body>
 </html>
