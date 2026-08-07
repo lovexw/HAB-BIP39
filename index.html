@@ -293,8 +293,9 @@ var app=window.app={
     if(e.touches&&e.touches[0]){x=e.touches[0].clientX;y=e.touches[0].clientY;e.preventDefault();}
     else{x=e.clientX;y=e.clientY;}
     var t=performance.now();
-    // 10 bytes per sample: full 32-bit coords + 32-bit timestamp
-    // captures sub-pixel precision and full millisecond resolution
+    // 10 bytes per sample: 32-bit x + 32-bit y + 16-bit timestamp (high 16 bits of ms)
+    // note: performance.now() returns float; bitwise ops truncate to integer,
+    // so we capture 16-bit ms resolution (sufficient for inter-sample differentiation)
     var s=new Uint8Array(10);
     s[0]=(x>>>24)&0xff;s[1]=(x>>>16)&0xff;s[2]=(x>>>8)&0xff;s[3]=x&0xff;
     s[4]=(y>>>24)&0xff;s[5]=(y>>>16)&0xff;s[6]=(y>>>8)&0xff;s[7]=y&0xff;
@@ -349,6 +350,8 @@ var app=window.app={
 
   cancelGeneration:function(){
     this.isGenerating=false;
+    // Securely wipe physical entropy samples before clearing reference
+    for(var i=0;i<this.physData.length;i++){if(this.physData[i])this.physData[i].fill(0);}
     this.physData=[];
     document.getElementById('entropy-overlay').style.display='none';
   },
