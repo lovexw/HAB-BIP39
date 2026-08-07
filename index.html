@@ -293,10 +293,12 @@ var app=window.app={
     if(e.touches&&e.touches[0]){x=e.touches[0].clientX;y=e.touches[0].clientY;e.preventDefault();}
     else{x=e.clientX;y=e.clientY;}
     var t=performance.now();
-    var s=new Uint8Array(6);
-    s[0]=(x>>8)&0xff;s[1]=x&0xff;
-    s[2]=(y>>8)&0xff;s[3]=y&0xff;
-    s[4]=(t>>8)&0xff;s[5]=t&0xff;
+    // 10 bytes per sample: full 32-bit coords + 32-bit timestamp
+    // captures sub-pixel precision and full millisecond resolution
+    var s=new Uint8Array(10);
+    s[0]=(x>>>24)&0xff;s[1]=(x>>>16)&0xff;s[2]=(x>>>8)&0xff;s[3]=x&0xff;
+    s[4]=(y>>>24)&0xff;s[5]=(y>>>16)&0xff;s[6]=(y>>>8)&0xff;s[7]=y&0xff;
+    s[8]=(t>>>8)&0xff;s[9]=t&0xff;
     this.physData.push(s);
     this.collected++;
     var pct=Math.min(100,(this.collected/this.target)*100);
@@ -316,9 +318,9 @@ var app=window.app={
     // 1. System entropy from CSPRNG
     var csprngLen=this.entropyBits/8;
     var sysEnt=crypto.getRandomValues(new Uint8Array(csprngLen));
-    // 2. Hash physical entropy
-    var physRaw=new Uint8Array(this.physData.length*6);
-    for(var i=0;i<this.physData.length;i++){physRaw.set(this.physData[i],i*6);}
+    // 2. Hash physical entropy (10 bytes per sample)
+    var physRaw=new Uint8Array(this.physData.length*10);
+    for(var i=0;i<this.physData.length;i++){physRaw.set(this.physData[i],i*10);}
     var physHash=sha256(physRaw);
     // 3. Combine: finalSeed = SHA256(sysEnt + physHash)
     var combined=new Uint8Array(sysEnt.length+physHash.length);
@@ -329,11 +331,18 @@ var app=window.app={
     var entBytes=seed.slice(0,csprngLen);
     // 5. Generate BIP39 mnemonic
     var mnemonic=generateMnemonic(entBytes,this.entropyBits);
-    // 6. Clear sensitive data
+    // 6. Securely wipe all sensitive intermediate buffers
+    sysEnt.fill(0);
+    physRaw.fill(0);
+    physHash.fill(0);
+    combined.fill(0);
+    seed.fill(0);
+    entBytes.fill(0);
+    // 7. Clear physical data array
     this.physData=[];
-    // 7. Display
+    // 8. Display
     this.displayMnemonic(mnemonic);
-    // 8. Hide overlay
+    // 9. Hide overlay
     document.getElementById('entropy-overlay').style.display='none';
     this.isGenerating=false;
   },
